@@ -21,9 +21,9 @@
   "current_stage": "R1",
   "current_stage_name": "长期产品路线图执行启动",
   "current_stage_goal": "v0.3.0 已发布（59 commits since v0.2.0）：DeepSeek AI 草稿接入、搜索能力套件、workflow 表单持久化、服务器备份/恢复/诊断、release 部署准备。已知 DeepSeek 草稿存在 task 类型校验边界问题，不影响规则降级路径。post-0.3 / Hermes 备案项 `AI-DRAFT-DEEPSEEK-SCHEMA-GUARD` 与 `HERMES-EXPERIMENT-BOOTSTRAP` 已登记到 planning / handoff，但当前不进入执行窗口。下一步需用户确认 DeepSeek 实际返回的 output.task 后再执行修复。",
-  "primary_track": "v0.3.0 released with 59 commits; AI draft task-type mismatch bug identified but not fixed; DEP-01 remains blocked by server confirmation",
+  "primary_track": "v0.3.0 released with 64 commits; DEP-01~06 all completed (user-dir deploy, static dist serve, version/health endpoints, systemd autostart with reboot verify); DATA-01 backup/restore verify now active; DeepSeek draft task-type mismatch bug identified but not fixed",
   "deferred_track": "DeepSeek draft task-type fix、real-provider smoke、AI-DRAFT-DEEPSEEK-SCHEMA-GUARD、HERMES-EXPERIMENT-BOOTSTRAP、REALAI-05/06、repo connector、RAG/embedding、权限系统和硬件自动接入均后置到依赖满足或用户拍板后。",
-  "current_atomic_task": "V0.3.0-RELEASE",
+  "current_atomic_task": "DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY",
   "roadmap_document": "docs/planning/product-roadmap.md",
   "roadmap_tracks": [
     {
@@ -104,14 +104,17 @@
     "project_status_ledger_completed": true,
     "night_run_rules_completed": true,
     "v0_2_history_docs_archived": true,
-    "real_server_release_user_dir_deploy_verify_completed": false,
-    "systemd_autostart_completed": false,
+    "real_server_release_user_dir_deploy_verify_completed": true,
+    "systemd_autostart_completed": true,
     "real_ai_provider_api_key_completed": false,
     "realai_deepseek_closeout_draft_minimal_completed": true,
     "core_closeout_continuation_ux_completed": true,
     "core_closeout_continuation_ux_investigation_entry_collapsed": true,
     "core_closeout_continuation_ux_investigation_entry_key_namespace_fixed": true,
-    "core_form_draft_server_persistence_completed": true
+    "core_form_draft_server_persistence_completed": true,
+    "dep_02_static_dist_server_path_verify_completed": true,
+    "dep_03_version_endpoint_server_verify_completed": true,
+    "dep_04_health_status_server_verify_completed": true
   },
   "assessment_state": {
     "refactor_assessment_document": "docs/planning/refactor-assessment.md",
@@ -261,70 +264,85 @@
   "pending_task_queue": [
     {
       "order": 1,
-      "id": "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY",
-      "track": "Deployment / Operability",
-      "status": "blocked",
+      "id": "DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY",
+      "track": "Data Safety",
+      "status": "current",
       "priority": "P0",
-      "classification": "blocked",
+      "classification": "day-only",
       "depends_on": [
-        "v0.2.x release assets and SHA256SUMS.txt",
-        "user confirms SSH, upload/download, /home/hurricane/probeflash write, temporary process start and 4100 boundary"
+        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
       ]
     },
     {
       "order": 2,
-      "id": "DEP-02-STATIC-DIST-SERVER-PATH-VERIFY",
-      "track": "Deployment / Operability",
-      "status": "pending_after_DEP-01",
-      "priority": "P0",
-      "classification": "day-only",
-      "depends_on": [
-        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
-      ]
-    },
-    {
-      "order": 3,
-      "id": "DEP-03-VERSION-ENDPOINT-SERVER-VERIFY",
-      "track": "Deployment / Operability",
-      "status": "pending_after_DEP-01",
-      "priority": "P0",
-      "classification": "day-only",
-      "depends_on": [
-        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
-      ]
-    },
-    {
-      "order": 4,
-      "id": "DEP-04-HEALTH-STATUS-SERVER-VERIFY",
-      "track": "Deployment / Operability",
-      "status": "pending_after_DEP-01",
-      "priority": "P0",
-      "classification": "day-only",
-      "depends_on": [
-        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
-      ]
-    },
-    {
-      "order": 5,
-      "id": "DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY",
-      "track": "Data Safety",
-      "status": "pending_after_DEP-01",
-      "priority": "P0",
-      "classification": "day-only",
-      "depends_on": [
-        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
-      ]
-    },
-    {
-      "order": 6,
       "id": "DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY",
       "track": "Data Safety",
-      "status": "pending_after_DATA-01",
+      "status": "pending",
       "priority": "P0",
       "classification": "day-only",
       "depends_on": [
         "DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY"
       ]
+    },
+    {
+      "order": 3,
+      "id": "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY",
+      "track": "Deployment / Operability",
+      "status": "completed",
+      "priority": "P0",
+      "classification": "completed",
+      "depends_on": [
+        "v0.2.x release assets and SHA256SUMS.txt"
+      ],
+      "completed_at": "2026-05-03T12:00:00+08:00"
+    },
+    {
+      "order": 4,
+      "id": "DEP-02-STATIC-DIST-SERVER-PATH-VERIFY",
+      "track": "Deployment / Operability",
+      "status": "completed",
+      "priority": "P0",
+      "classification": "completed",
+      "depends_on": [
+        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
+      ],
+      "completed_at": "2026-05-03T12:00:00+08:00"
+    },
+    {
+      "order": 5,
+      "id": "DEP-03-VERSION-ENDPOINT-SERVER-VERIFY",
+      "track": "Deployment / Operability",
+      "status": "completed",
+      "priority": "P0",
+      "classification": "completed",
+      "depends_on": [
+        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
+      ],
+      "completed_at": "2026-05-03T12:00:00+08:00"
+    },
+    {
+      "order": 6,
+      "id": "DEP-04-HEALTH-STATUS-SERVER-VERIFY",
+      "track": "Deployment / Operability",
+      "status": "completed",
+      "priority": "P0",
+      "classification": "completed",
+      "depends_on": [
+        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
+      ],
+      "completed_at": "2026-05-03T12:00:00+08:00"
+    },
+    {
+      "order": 7,
+      "id": "DEP-05_06-SYSTEMD-AUTOSTART",
+      "track": "Deployment / Operability",
+      "status": "completed",
+      "priority": "P0",
+      "classification": "completed",
+      "depends_on": [
+        "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY"
+      ],
+      "completed_at": "2026-05-03T12:00:00+08:00"
     },
     {
       "order": 7,
@@ -829,17 +847,11 @@
   ],
   "gated_night_safe_pool": [],
   "day_only_pool": [
-    "DEP-02-STATIC-DIST-SERVER-PATH-VERIFY",
-    "DEP-03-VERSION-ENDPOINT-SERVER-VERIFY",
-    "DEP-04-HEALTH-STATUS-SERVER-VERIFY",
-    "DEP-05-SYSTEMD-AUTOSTART-PREP",
     "DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY",
     "DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY",
     "UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW"
   ],
   "blocked_by_external": [
-    "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY",
-    "DEP-06-SYSTEMD-AUTOSTART-VERIFY",
     "DEP-08-RELEASE-UPDATE-ROLLBACK-VERIFY",
     "REALAI-05-SUMMARIZE-RECORDS",
     "REALAI-06-SUGGEST-PREVENTION",
@@ -918,7 +930,12 @@
     "CORE-CLOSEOUT-CONTINUATION-UX",
     "CORE-CLOSEOUT-CONTINUATION-UX-INVESTIGATION-ENTRY-COLLAPSE-HOTFIX",
     "CORE-CLOSEOUT-CONTINUATION-UX-INVESTIGATION-KEY-NAMESPACE-FIX",
-    "V0.3.0-RELEASE"
+    "V0.3.0-RELEASE",
+    "DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY",
+    "DEP-02-STATIC-DIST-SERVER-PATH-VERIFY",
+    "DEP-03-VERSION-ENDPOINT-SERVER-VERIFY",
+    "DEP-04-HEALTH-STATUS-SERVER-VERIFY",
+    "DEP-05_06-SYSTEMD-AUTOSTART"
   ],
   "next_task_selection_basis": {
     "required_inputs": [
@@ -938,7 +955,7 @@
       "docs/product/产品介绍.md：产品定义 / 领域语言变化",
       "docs/archive/v0.2-closeout/：仅 v0.2.0 前历史背景、专项追溯或归档审计"
     ],
-    "recommended_next_daytime": "After CORE-CLOSEOUT-CONTINUATION-UX completion and investigation append key namespace fix, stop and re-run planning before choosing any next task. Real DeepSeek smoke remains user-run by sourcing /home/rainman/.config/probeflash/deepseek.env into the server environment; DEP-01 remains blocked until server deployment boundaries are reconfirmed; UI-GATE-06 remains manual review only.",
+    "recommended_next_daytime": "DEP-01~06 deployment verification completed (real server user-dir deploy with systemd boot autostart). Next task is DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY to confirm backup/restore and WAL file handling. UI-GATE-06 remains manual review only. DeepSeek real provider smoke still requires user-local env setup.",
     "recommended_next_daytime_status": "Core closeout continuation UX and REALAI code-side minimal integration are completed; real provider smoke is user-run because AI must not read or handle the API key.",
     "recommended_next_night_safe": "none",
     "recommended_next_ui_task": "UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW remains manual review only; do not auto-start new UI polish.",
@@ -1213,6 +1230,7 @@
     "UI-POLISH-02-COPY-TRIM 已完成：压缩顶部成功态、项目弹窗、工作台入口、Knowledge Assist、追记、归档和结案辅助说明；保留服务器/存储错误态、Repair Task、真实 AI 未接入和文件写盘未接入等状态边界。",
     "UI-POLISH-03-QUICK-ISSUE-LANDING-LAYOUT 已完成：未选中问题时快速建卡主卡已放大，最小演示路径已移除，辅助验证已移到未选中提示框下方并标注仅测试。",
     "REALAI-DEEPSEEK-CLOSEOUT-DRAFT-MINIMAL 已完成代码侧闭环：server-side DeepSeek adapter / AI route / desktop client / CloseoutForm DeepSeek 优先 + 本地规则兜底 / source history / mock no-key timeout schema verify。",
+    "CORE-CLOSEOUT-CONTINUATION-UX 已完成：workflow 表单本地草稿同 origin 保�NIMAL 已完成代码侧闭环：server-side DeepSeek adapter / AI route / desktop client / CloseoutForm DeepSeek 优先 + 本地规则兜底 / source history / mock no-key timeout schema verify。",
     "CORE-CLOSEOUT-CONTINUATION-UX 已完成：workflow 表单本地草稿同 origin 保存 / 恢复 / 清除；取消归档只把问题卡重开为 investigating，保留 ArchiveDocument 和 ErrorEntry 历史；DeepSeek closeout prompt 已改为 server 根据 issue/records 构造，前端不再传完整 messages；问题卡详情页追记入口单卡片默认折叠 hotfix 已完成；后续 sibling key namespace fix 已修复 InvestigationAppendForm 与 CloseoutForm 同级重复 key 导致的 stale DOM 累积，并由 verify / browser DOM smoke 覆盖连续切换 issue 后追记表单数量保持 1。",
     "当前不能由 AI 执行真实 DeepSeek smoke；用户需自行创建 /home/rainman/.config/probeflash/deepseek.env 并 source 到 server env 后启动服务。",
     "如果用户明确切回服务器部署并确认 SSH、release 获取、/home/hurricane/probeflash 写入、临时进程和 4100 端口边界，DEP-01 仍可作为 P0 白天主线；但下一轮默认不要改选 DEP-01。",

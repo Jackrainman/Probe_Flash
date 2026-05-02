@@ -6,7 +6,7 @@
 - 当前版本基座：v0.2.x 本地 HTTP + SQLite + release 可部署基座。
 - 路线图事实源：`docs/planning/product-roadmap.md`。
 - 当前目标：近期 1 周先让部署可用、数据安全、可观测；B 组 night-safe 功能包、第一轮 UI 修补与 `REALAI-DEEPSEEK-CLOSEOUT-DRAFT-MINIMAL` 均已完成。当前不得自动执行下一轮 UI polish 或跳到其它 broad refactor。`SEARCH-01-BASIC-FULL-TEXT-SEARCH`、`SEARCH-02-FILTERS`、`SEARCH-04-TAGS`、`SEARCH-03-ARCHIVE-REVIEW-PAGE`、`SEARCH-07-SIMILAR-ISSUES-LITE`、`SEARCH-08-SEARCH-RESULT-LINKING`、`SEARCH-09-RECURRENCE-PROMPT`、`TECH-DEBT-SEARCH-KB-CLEANUP-LITE`、`UI-REDESIGN-STAGE-BRIEF`、`UI-01-INFORMATION-ARCHITECTURE-REVIEW`、`CORE-02-WORKSPACE-UX-IMPROVEMENTS`、`CORE-03-RECENT-ISSUE-REOPEN`、`CORE-06-CLOSEOUT-PARTIAL-SAVE-HINTS`、`AIREADY-05-DRAFT-HISTORY`、`UI-GATE-01-MANUAL-VISUAL-DIRECTION`、`TECH-07-APP-TSX-MINIMAL-SPLIT` 与 `PROJECT-STATUS-LEDGER-MINIMAL` 已完成，不再留在可认领池；UI 小阶段任务拆分见 `docs/planning/ui-redesign-brief.md`。
-- 当前 blocked：真实服务器 release 用户目录部署验证、systemd 自启、真实 DeepSeek provider opt-in smoke（需要用户本地注入 key；AI 不读取密钥文件）。
+- 当前 blocked：真实 DeepSeek provider opt-in smoke（需要用户本地注入 key；AI 不读取密钥文件）。
 
 ## 认领规则
 1. 每次只认领一个原子任务，完成前必须最小验证、planning sync、单任务 commit。
@@ -40,12 +40,12 @@
 
 | 顺序 | 任务 ID | 类型 | P | 备注 |
 |---|---|---|---|---|
-| 1 | DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY | blocked | P0 | 需要用户白天确认服务器边界 |
-| 2 | DEP-02-STATIC-DIST-SERVER-PATH-VERIFY | day-only | P0 | 依赖 DEP-01 服务运行 |
-| 3 | DEP-03-VERSION-ENDPOINT-SERVER-VERIFY | day-only | P0 | 依赖 DEP-01 |
-| 4 | DEP-04-HEALTH-STATUS-SERVER-VERIFY | day-only | P0 | 依赖 DEP-01 |
-| 5 | DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY | day-only | P0 | 依赖 DEP-01 |
-| 6 | DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY | day-only | P0 | 依赖 DATA-01 |
+| 1 | DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY | completed | P0 | reboot 验证确认 |
+| 2 | DEP-02-STATIC-DIST-SERVER-PATH-VERIFY | completed | P0 | Web UI 4100 正常 |
+| 3 | DEP-03-VERSION-ENDPOINT-SERVER-VERIFY | completed | P0 | release v0.3.0 正常 |
+| 4 | DEP-04-HEALTH-STATUS-SERVER-VERIFY | completed | P0 | /api/health 正常 |
+| 5 | DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY | current | P0 | day-only |
+| 6 | DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY | pending | P0 | 依赖 DATA-01 |
 | 7 | DEP-07-RELEASE-UPDATE-ROLLBACK-PLAN | completed | P0 | 已完成；release update / rollback runbook 已接入 deploy-prep 静态检查 |
 | 8 | DATA-04-INTEGRITY-CHECK | completed | P0 | 已完成；SQLite integrity check CLI 与失败注入 verify 已落地 |
 
@@ -143,17 +143,11 @@
 - 当前必须停在 `UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW`，不能夜跑越过人工检查门。
 
 ## Day-only pool
-- DEP-02-STATIC-DIST-SERVER-PATH-VERIFY
-- DEP-03-VERSION-ENDPOINT-SERVER-VERIFY
-- DEP-04-HEALTH-STATUS-SERVER-VERIFY
-- DEP-05-SYSTEMD-AUTOSTART-PREP
 - DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY
 - DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY
 - UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW
 
 ## Blocked by external
-- DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY
-- DEP-06-SYSTEMD-AUTOSTART-VERIFY
 - DEP-08-RELEASE-UPDATE-ROLLBACK-VERIFY
 - REALAI-05-SUMMARIZE-RECORDS
 - REALAI-06-SUGGEST-PREVENTION

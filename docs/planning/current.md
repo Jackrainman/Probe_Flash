@@ -13,7 +13,7 @@
 - 已完成：本地 HTTP + SQLite 主链路、workspace 创建 / 切换、workspace UX improvements、recent issue reopen、closeout failure input preservation hints、AI-ready draft history、issue / record / closeout / archive / error-entry 主路径、basic full-text search、search filters、search tags、archive review page、similar issues lite、search result linking、recurrence prompt、search / KB verify fixture cleanup、UI redesign stage brief、UI information architecture review、App.tsx minimal split、UI pre-relayout component split、UI relayout first pass、quick issue create、record timeline polish、closeout UX polish、closeout continuation UX、investigation append collapsed entry hotfix 与 sibling key namespace fix、form draft server persistence（四类表单草稿 HTTP + SQLite 持久化 + localStorage fallback）、`ErrorEntry.prevention` 非空修复、release tarball 部署规划、server 同端口服务 `dist` + `/api`、AI-ready prompt templates、rule-based closeout draft panel、DeepSeek closeout draft minimal integration、server schema contract、HTTP feedback contract、restore dry-run、SQLite integrity check、JSON export hardening、partial closeout recovery verify、repair task generation、diagnostics bundle、night-run 安全规则、v0.2 历史文档归档、lightweight project status ledger、refactor necessity audit。
 - 技术债审计：`docs/planning/refactor-assessment.md` 仍作为 TECH-07 背景输入；`SEARCH-07` 与 `UI-GATE-01` 已完成，当前没有必须先做的 broad refactor gate；大文件和重复逻辑存在但不阻塞 DEP-01 / TECH-07。
 - UI 改造状态：`docs/planning/ui-redesign-brief.md` 已完成信息架构审查与 `UI-GATE-01` 人工确认记录，`TECH-07` 最小支撑拆分、`UI-MOD-01` 行为保持模块化拆分、`UI-RELAYOUT-01` 第一轮工作台重排、`UI-POLISH-02-COPY-TRIM` 文案瘦身和 `UI-POLISH-03-QUICK-ISSUE-LANDING-LAYOUT` 均已完成。当前必须停止在 `UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW`，等待用户人工检查桌面端和移动端观感，不得自动进入下一轮 UI polish。
-- 仍 blocked：真实服务器 release 用户目录部署验证、systemd 自启、真实 DeepSeek provider opt-in smoke（需要用户本地创建 env 并启动 server；AI 不读取 key）。
+- 仍 blocked：真实 DeepSeek provider opt-in smoke（需要用户本地创建 env 并启动 server；AI 不读取 key）。
 - 服务器安全边界仍有效：不 sudo、不写 `/opt`、不抢 80、不升级系统 Node、不影响 filebrowser / vnt-cli / docker / Portainer；release 部署优先 `/home/hurricane/probeflash` + 独立 Node runtime + 4100。
 - AI 安全边界仍有效：DeepSeek closeout 草稿最小链路已完成；API key 只来自 server env，AI 不读取密钥文件，不把 key 写入代码 / Git / 日志；AI 只返回草稿，不直接写库。
 - Code context 安全边界仍有效：先做用户显式生成的 bundle；server 不任意扫描仓库；repo connector 只作为后续 decision-needed 项。
@@ -29,15 +29,13 @@
 7. Code Context Analysis：AI 能基于用户显式提供的代码上下文分析问题。
 8. Technical Debt / Architecture：避免越跑越石山。
 
-## 仍 blocked 的白天服务器主线（不能夜跑）
-- **DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY**
-  - 目标：在服务器 `/home/hurricane/probeflash` 下使用 GitHub Release tarball 完成 no-sudo 用户目录部署验证，确认 Web UI、`/api`、SQLite 持久化、独立 Node runtime、4100 端口和旧服务旁路都成立。
-  - 旧任务别名：`S3-SERVER-RELEASE-USER-DIR-DEPLOY-VERIFY`。
-  - 当前状态：`blocked`，需要用户白天确认 SSH、release 下载或上传方式、写入 `/home/hurricane/probeflash`、启动临时进程与 4100 端口边界。
-  - 允许改动：用户授权的服务器 `/home/hurricane/probeflash/{releases,current,runtime,shared}`；仓库内仅 planning sync 或必要 deployment note。
-  - 明确不做：不 sudo；不 systemd；不写 `/opt`；不碰 80；不升级系统 Node；不使用系统 Node v10；不影响既有服务；不接真实 AI。
-  - 验证方式：SHA256 校验；`curl http://127.0.0.1:4100/`；`curl http://127.0.0.1:4100/api/health`；`curl http://192.168.2.2:4100/`；`curl http://192.168.2.2:4100/api/health`；创建 workspace / issue；停止重启后读回；确认 `shared/data/probeflash.sqlite` 被使用；确认 filebrowser:80 正常。
-  - 完成定义：固定 release 资产在用户目录运行；4100 可本机与 LAN 访问 Web UI 和 `/api`；SQLite 重启后可读回；`shared/data` / `shared/env` / `shared/logs` 不随 release 删除；未执行 sudo / systemd / `/opt` / 服务器 `git pull`。
+## 已完成服务器部署验证（DEP-01 ~ DEP-06）
+- **DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY** ✅ 已完成（reboot 后验证确认）。
+- **DEP-02-STATIC-DIST-SERVER-PATH-VERIFY** ✅ 已完成（Web UI 在 4100 正常服务）。
+- **DEP-03-VERSION-ENDPOINT-SERVER-VERIFY** ✅ 已完成（release v0.3.0 正常返回）。
+- **DEP-04-HEALTH-STATUS-SERVER-VERIFY** ✅ 已完成（`/api/health` 正常返回）。
+- **DEP-05/06-SYSTEMD-AUTOSTART** ✅ 已完成（`probeflash.service` enabled，reboot 后自动恢复并 active）。
+- 部署结果确认：`/home/hurricane/probeflash/releases/v0.3.0`、独立 Node runtime、4100 端口、`shared/data/probeflash.sqlite`、filebrowser 80 端口不受影响。
 
 ## 已完成 repo-local UI 改造任务（不能继续顺推 UI polish）
 - **UI-RELAYOUT-01-WORKBENCH-FIRST-PASS**
@@ -61,26 +59,29 @@
   - 明确未做：未改 schema、repository contract、HTTP API、server、真实 AI、RAG / embedding、Electron / fs / IPC、业务数据流或存储语义。
 
 ## 当前唯一执行中的原子任务
-- **CORE-FORM-DRAFT-SERVER-PERSISTENCE**
-  - 目标：把 workflow 表单草稿（InvestigationAppendForm/CloseoutForm/QuickIssue/IssueIntake）从未提交 localStorage only 扩展为 HTTP + SQLite 持久化草稿，保留 localStorage mirror/fallback；workspace/formKind/itemId 维度隔离；表单提交成功时清除后端与本地双重草稿；后端不可用时自动回退 localStorage；不进入 IssueCard/InvestigationRecord/ErrorEntry/ArchiveDocument schema。
-  - 当前状态：`completed`；repo-local；已验证保存草稿、刷新恢复、切换 workspace 隔离、提交后清除、HTTP 不可用 fallback 五种场景。
-  - 直接输入边界：只改 form-draft-store.ts、storage-repository.ts、http-storage-repository.ts、storage-result.ts、database.mjs、server.mjs、integrity-check.mjs、四类表单组件、verify、package.json、planning sync；不碰追记默认折叠 UI、不读真实 key、不接 AI/RAG/Electron/fs。
-  - 明确不做：不改变 IssueCard/InvestigationRecord/ErrorEntry/ArchiveDocument schema；不做 UI bug 修复；不触发表单默认折叠改动。
-  - 验证方式：新增 `verify:core-workflow-form-drafts` 覆盖五种场景；全量 `verify:all`、`typecheck`、`build`、`git diff --check` 通过。
-  - 完成定义：server-side `form_drafts` 表 + API + repository adapter 接缝可工作；四类表单后台优先保存与恢复；localStorage mirror/fallback 保留；表单提交后清除；workspace 隔离；新增 verify 5 种场景通过且 verify:all 全量通过。
+- **DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY**
+  - 目标：在服务器 `/home/hurricane/probeflash/shared/data` 路径下验证 SQLite 备份/恢复流程，确认 WAL 文件不会被漏备，备份可完整恢复。
+  - 当前状态：`current`；P0；day-only。
+  - 直接输入边界：只改服务器 `shared/data` 备份脚本、仓库内 backup/restore 文档；不碰 server 业务代码、schema、UI 或 AI。
+  - 明确不做：不建立备份保留策略（需用户拍板）；不接远程备份/云存储；不修改 SQLite schema；不改变生产数据。
+  - 验证方式：服务器端备份命令 + 恢复 dry-run；确认备份文件包含主 DB + WAL 完整性；确认恢复后数据可读。
+  - 完成定义：`shared/data` 备份/恢复流程可执行；WAL 文件不遗漏；恢复后数据与原始一致；操作文档完整。
 
 ## 当前前沿任务窗口（最多 3 个候选）
-- **DEP-01-RELEASE-USER-DIR-DEPLOY-VERIFY**
-  - 状态：`blocked`；P0；白天主线；不能夜跑。
-  - 选择理由：真实服务器部署仍是产品可用性的最大缺口。
+- **DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY**
+  - 状态：`current`；P0；day-only。
+  - 选择理由：systemd 自启已验证，下一步最该补的是数据安全——确认备份/恢复流程不丢数据、不遗漏 WAL。
+- **DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY**
+  - 状态：`pending`；P0；day-only；依赖 DATA-01。
+  - 选择理由：备份验证后必须验证恢复流程可实际执行。
 - **UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW**
   - 状态：`manual-review`；P1；day-only。
-  - 选择理由：快速建卡 landing 调整后仍只能由用户人工检查桌面端和移动端观感，不得自动进入下一轮 UI polish。
+  - 选择理由：快速建卡 landing 调整后仍只能由用户人工检查桌面端和移动端观感。
 
 ## 下一步最小可执行动作
-- 本轮默认：`CORE-FORM-DRAFT-SERVER-PERSISTENCE` 已完成；不得自动做真实 provider smoke 或继续下一项功能。
-- 用户侧最小动作：用同一个域名/地址刷新验证表单草稿恢复（包括后台 SQLite 优先路径）；如需测 DeepSeek，用户自行 source env 后启动 server。
-- 下一轮选择：回到 planning 重新判断是否继续真实 provider smoke、服务器部署验证或 UI-GATE-06 人工 review；不得机械顺推。
+- 本轮默认：`DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY` 执行中。
+- 用户侧最小动作：在服务器执行备份命令，确认 `shared/data/probeflash.sqlite` 及其 WAL 文件被完整复制到备份目录。
+- 下一轮选择：DATA-01 完成后进入 DATA-03 恢复 dry-run 验证；DEP 部署系列已全部完成。
 
 ## 下一任务选择流程
 1. 可以先读 `docs/planning/status.md` 获取概览，但不得只凭它认领或执行任务。
