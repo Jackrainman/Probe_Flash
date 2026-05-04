@@ -3,6 +3,13 @@ import { DatabaseSync } from "node:sqlite";
 
 import { startProbeFlashServer } from "../src/server.mjs";
 import { createTempDir } from "./verify-helpers.mjs";
+import {
+  makeArchiveFixture,
+  makeErrorEntryFixture,
+  makeIssueFixture,
+  makeRecordFixture,
+  makeRepoSnapshot,
+} from "./fixtures/verify-fixtures.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const NOW = "2026-04-26T12:00:00+08:00";
@@ -61,100 +68,95 @@ async function expectValidation(url, init, label) {
 }
 
 function repoSnapshot(overrides = {}) {
-  return {
-    branch: "master",
-    headCommitHash: "0000000000000000000000000000000000000000",
-    headCommitMessage: "verify fixture",
-    hasUncommittedChanges: false,
-    changedFiles: [
-      {
-        path: "apps/server/src/database.mjs",
-        status: "modified",
-      },
-    ],
-    recentCommits: [
-      {
-        hash: "3ddb3a6",
-        author: "ProbeFlash Verify",
-        message: "verify fixture",
-        timestamp: NOW,
-      },
-    ],
-    capturedAt: NOW,
-    ...overrides,
-  };
+  return makeRepoSnapshot({
+    now: NOW,
+    overrides: {
+      changedFiles: [
+        {
+          path: "apps/server/src/database.mjs",
+          status: "modified",
+        },
+      ],
+      recentCommits: [
+        {
+          hash: "3ddb3a6",
+          author: "ProbeFlash Verify",
+          message: "verify fixture",
+          timestamp: NOW,
+        },
+      ],
+      ...overrides,
+    },
+  });
 }
 
 function issueFixture(id, overrides = {}) {
-  return {
+  return makeIssueFixture({
     id,
-    projectId: WORKSPACE_ID,
-    title: "Server schema contract issue",
-    rawInput: "Verify server write payload validation.",
-    normalizedSummary: "server schema contract",
-    symptomSummary: "POST should reject frontend-invalid payloads",
-    suspectedDirections: ["server validation"],
-    suggestedActions: ["tighten normalize payload contract"],
-    status: "open",
-    severity: "medium",
-    tags: ["verify", "schema-contract"],
+    workspaceId: WORKSPACE_ID,
+    now: NOW,
     repoSnapshot: repoSnapshot(),
-    relatedFiles: ["apps/server/src/database.mjs"],
-    relatedCommits: [],
-    relatedHistoricalIssueIds: [],
-    createdAt: NOW,
-    updatedAt: NOW,
-    ...overrides,
-  };
+    overrides: {
+      title: "Server schema contract issue",
+      rawInput: "Verify server write payload validation.",
+      normalizedSummary: "server schema contract",
+      symptomSummary: "POST should reject frontend-invalid payloads",
+      suspectedDirections: ["server validation"],
+      suggestedActions: ["tighten normalize payload contract"],
+      tags: ["verify", "schema-contract"],
+      relatedFiles: ["apps/server/src/database.mjs"],
+      ...overrides,
+    },
+  });
 }
 
 function recordFixture(id, issueId, overrides = {}) {
-  return {
+  return makeRecordFixture({
     id,
     issueId,
-    type: "observation",
-    rawText: "Server accepted a schema-valid record.",
-    polishedText: "Server accepted a schema-valid record.",
-    aiExtractedSignals: ["schema contract"],
-    linkedFiles: ["apps/server/src/database.mjs"],
-    linkedCommits: [],
-    createdAt: NOW,
-    ...overrides,
-  };
+    now: NOW,
+    overrides: {
+      rawText: "Server accepted a schema-valid record.",
+      polishedText: "Server accepted a schema-valid record.",
+      aiExtractedSignals: ["schema contract"],
+      linkedFiles: ["apps/server/src/database.mjs"],
+      ...overrides,
+    },
+  });
 }
 
 function archiveFixture(fileName, issueId, overrides = {}) {
-  return {
+  return makeArchiveFixture({
     issueId,
-    projectId: WORKSPACE_ID,
+    workspaceId: WORKSPACE_ID,
     fileName,
-    filePath: `.debug_workspace/archive/${fileName}`,
-    markdownContent: "# Server schema contract\n",
-    generatedBy: "manual",
-    generatedAt: NOW,
-    ...overrides,
-  };
+    now: NOW,
+    overrides: {
+      markdownContent: "# Server schema contract\n",
+      ...overrides,
+    },
+  });
 }
 
 function errorEntryFixture(id, issueId, errorCode, archiveFilePath, overrides = {}) {
-  return {
+  return makeErrorEntryFixture({
     id,
-    projectId: WORKSPACE_ID,
     sourceIssueId: issueId,
+    workspaceId: WORKSPACE_ID,
     errorCode,
-    title: "Server schema contract error entry",
-    category: "server",
-    symptom: "frontend-invalid payload accepted by server",
-    rootCause: "server-side write contract was too weak",
-    resolution: "server now validates write payloads before SQLite insert",
-    prevention: "Keep server write verification aligned with frontend schemas.",
-    relatedFiles: ["apps/server/src/database.mjs"],
-    relatedCommits: [],
     archiveFilePath,
-    createdAt: NOW,
-    updatedAt: NOW,
-    ...overrides,
-  };
+    now: NOW,
+    overrides: {
+      title: "Server schema contract error entry",
+      category: "server",
+      symptom: "frontend-invalid payload accepted by server",
+      rootCause: "server-side write contract was too weak",
+      resolution: "server now validates write payloads before SQLite insert",
+      prevention: "Keep server write verification aligned with frontend schemas.",
+      relatedFiles: ["apps/server/src/database.mjs"],
+      ...overrides,
+    },
+  });
 }
 
 function countRows(dbPath, tableName) {

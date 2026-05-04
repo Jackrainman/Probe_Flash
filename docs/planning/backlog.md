@@ -12,8 +12,7 @@
 
 | 任务 | 状态 | 依赖 | 具体内容 |
 |------|------|------|----------|
-| TECH-06-SMOKE-FIXTURE-CONSOLIDATION | current | TECH-05（done） | inline fixture 集中到 `apps/desktop/scripts/fixtures/`；合并 `search-verify-fixtures.mts` |
-| TECH-01-CLOSEOUT-ATOMICITY-DESIGN | pending | — | closeout 写 ErrorEntry + ArchiveDocument 包 `BEGIN/COMMIT/ROLLBACK`；加 `closeout_state` 标记位 |
+| TECH-01-CLOSEOUT-ATOMICITY-DESIGN | current | — | closeout 写 ErrorEntry + ArchiveDocument 包 `BEGIN/COMMIT/ROLLBACK`；加 `closeout_state` 标记位 |
 | TECH-02-CLOSEOUT-ATOMICITY-RECOVERY | pending | TECH-01 | 启动扫 `closeout_state = pending`；提供完成/回滚入口；前端提示 |
 | TECH-08-HTTP-REPOSITORY-SPLIT | pending | — | 从 `server.mjs` 抽 `store.*` 调用成独立 Repository 层；按 entity 分文件 |
 | TECH-09-SERVER-ROUTE-SPLIT | pending | TECH-08 | 20+ 路由按 entity 拆文件；`server.mjs` 从 509 行瘦到 ~80 行 |
@@ -21,7 +20,7 @@
 | TECH-03-WORKSPACEID-CONSISTENCY-LATER | pending | — | review 所有查询是否过滤 `workspace_id`；补测试；最低优先级 |
 
 **可并行组：**
-- Group A（infra 串行）：TECH-04（done） → TECH-05（done） → TECH-06
+- Group A（infra 串行）：TECH-04（done） → TECH-05（done） → TECH-06（done）
 - Group B（closeout 串行）：TECH-01 → TECH-02
 - Group C（HTTP arch 串行）：TECH-08 → TECH-09
 - Group D（独立并行）：TECH-10（DB 拆分，与 Group C 不冲突）

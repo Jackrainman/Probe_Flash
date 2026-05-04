@@ -2,6 +2,13 @@ import { join } from "node:path";
 
 import { startProbeFlashServer } from "../src/server.mjs";
 import { createTempDir } from "./verify-helpers.mjs";
+import {
+  makeArchiveFixture,
+  makeErrorEntryFixture,
+  makeIssueFixture,
+  makeRecordFixture,
+  makeRepoSnapshot,
+} from "./fixtures/verify-fixtures.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const NOW = "2026-04-27T18:00:00+08:00";
@@ -45,83 +52,74 @@ async function expectOk(url, init, statusCode, label) {
 }
 
 function repoSnapshot(workspaceId) {
-  return {
-    branch: "master",
-    headCommitHash: "0000000000000000000000000000000000000000",
-    headCommitMessage: `search verify fixture ${workspaceId}`,
-    hasUncommittedChanges: false,
-    changedFiles: [],
-    recentCommits: [],
-    capturedAt: NOW,
-  };
+  return makeRepoSnapshot({
+    now: NOW,
+    overrides: {
+      headCommitMessage: `search verify fixture ${workspaceId}`,
+    },
+  });
 }
 
 function issueFixture(workspaceId, id, title, description) {
-  return {
+  return makeIssueFixture({
     id,
-    projectId: workspaceId,
-    title,
-    rawInput: description,
-    normalizedSummary: description,
-    symptomSummary: description,
-    suspectedDirections: ["search verify"],
-    suggestedActions: ["search this fixture"],
-    status: "open",
-    severity: "medium",
-    tags: ["verify", "search"],
+    workspaceId,
+    now: NOW,
     repoSnapshot: repoSnapshot(workspaceId),
-    relatedFiles: [],
-    relatedCommits: [],
-    relatedHistoricalIssueIds: [],
-    createdAt: NOW,
-    updatedAt: NOW,
-  };
+    overrides: {
+      title,
+      rawInput: description,
+      normalizedSummary: description,
+      symptomSummary: description,
+      suspectedDirections: ["search verify"],
+      suggestedActions: ["search this fixture"],
+      tags: ["verify", "search"],
+    },
+  });
 }
 
 function recordFixture(id, issueId, note) {
-  return {
+  return makeRecordFixture({
     id,
     issueId,
-    type: "observation",
-    rawText: note,
-    polishedText: note,
-    aiExtractedSignals: ["oscilloscope ripple"],
-    linkedFiles: [],
-    linkedCommits: [],
-    createdAt: NOW,
-  };
+    now: NOW,
+    overrides: {
+      rawText: note,
+      polishedText: note,
+      aiExtractedSignals: ["oscilloscope ripple"],
+    },
+  });
 }
 
 function archiveFixture(workspaceId, issueId) {
-  return {
+  return makeArchiveFixture({
     issueId,
-    projectId: workspaceId,
+    workspaceId,
     fileName: "2026-04-27_search-basic-main.md",
-    filePath: ".debug_workspace/archive/2026-04-27_search-basic-main.md",
-    markdownContent: "# Search archive\n\nRoot cause: transceiver termination mismatch caused the dropout.",
-    generatedBy: "manual",
-    generatedAt: NOW,
-  };
+    now: NOW,
+    overrides: {
+      markdownContent: "# Search archive\n\nRoot cause: transceiver termination mismatch caused the dropout.",
+    },
+  });
 }
 
 function errorEntryFixture(workspaceId, issueId, archiveFilePath) {
-  return {
+  return makeErrorEntryFixture({
     id: "error-entry-search-basic-main-0001",
-    projectId: workspaceId,
     sourceIssueId: issueId,
+    workspaceId,
     errorCode: "DBG-20260427-401",
-    title: "CAN heartbeat dropout search entry",
-    category: "CAN",
-    symptom: "Heartbeat packet drops during drive enable.",
-    rootCause: "transceiver termination mismatch",
-    resolution: "Reworked the CAN termination and verified packet stability.",
-    prevention: "Add termination resistance check to pre-match checklist.",
-    relatedFiles: [],
-    relatedCommits: [],
     archiveFilePath,
-    createdAt: NOW,
-    updatedAt: NOW,
-  };
+    now: NOW,
+    overrides: {
+      title: "CAN heartbeat dropout search entry",
+      category: "CAN",
+      symptom: "Heartbeat packet drops during drive enable.",
+      rootCause: "transceiver termination mismatch",
+      resolution: "Reworked the CAN termination and verified packet stability.",
+      prevention: "Add termination resistance check to pre-match checklist.",
+    },
+  });
 }
 
 async function createWorkspace(baseUrl, name) {

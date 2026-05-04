@@ -6,6 +6,12 @@ import { DatabaseSync } from "node:sqlite";
 import { createProbeFlashDatabase } from "../src/database.mjs";
 import { createIntegrityReport } from "./integrity-check.mjs";
 import { createTempDir } from "./verify-helpers.mjs";
+import {
+  makeArchiveFixture,
+  makeErrorEntryFixture,
+  makeIssueFixture,
+  makeRecordFixture,
+} from "./fixtures/verify-fixtures.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const NOW = "2026-04-27T15:30:00+08:00";
@@ -25,84 +31,63 @@ function assert(condition, reason, detail) {
   }
 }
 
-function repoSnapshot() {
-  return {
-    branch: "master",
-    headCommitHash: "0000000000000000000000000000000000000000",
-    headCommitMessage: "verify fixture",
-    hasUncommittedChanges: false,
-    changedFiles: [],
-    recentCommits: [],
-    capturedAt: NOW,
-  };
-}
-
 function issueFixture(id, status = "open") {
-  return {
+  return makeIssueFixture({
     id,
-    projectId: WORKSPACE_ID,
-    title: `Integrity verify issue ${id}`,
-    rawInput: "Verify SQLite integrity check.",
-    normalizedSummary: "integrity check fixture",
-    symptomSummary: "n/a",
-    suspectedDirections: ["data integrity"],
-    suggestedActions: ["run integrity check"],
-    status,
-    severity: "medium",
-    tags: ["verify"],
-    repoSnapshot: repoSnapshot(),
-    relatedFiles: [],
-    relatedCommits: [],
-    relatedHistoricalIssueIds: [],
-    createdAt: NOW,
-    updatedAt: NOW,
-  };
+    workspaceId: WORKSPACE_ID,
+    now: NOW,
+    overrides: {
+      title: `Integrity verify issue ${id}`,
+      rawInput: "Verify SQLite integrity check.",
+      normalizedSummary: "integrity check fixture",
+      symptomSummary: "n/a",
+      suspectedDirections: ["data integrity"],
+      suggestedActions: ["run integrity check"],
+      status,
+    },
+  });
 }
 
 function recordFixture(id, issueId) {
-  return {
+  return makeRecordFixture({
     id,
     issueId,
-    type: "observation",
-    rawText: "Integrity verify record.",
-    polishedText: "Integrity verify record.",
-    aiExtractedSignals: [],
-    linkedFiles: [],
-    linkedCommits: [],
-    createdAt: NOW,
-  };
+    now: NOW,
+    overrides: {
+      rawText: "Integrity verify record.",
+      polishedText: "Integrity verify record.",
+    },
+  });
 }
 
 function archiveFixture(issueId, fileName) {
-  return {
+  return makeArchiveFixture({
     issueId,
-    projectId: WORKSPACE_ID,
+    workspaceId: WORKSPACE_ID,
     fileName,
-    filePath: `.debug_workspace/archive/${fileName}`,
-    markdownContent: "# Integrity verify\n",
-    generatedBy: "manual",
-    generatedAt: NOW,
-  };
+    now: NOW,
+    overrides: {
+      markdownContent: "# Integrity verify\n",
+    },
+  });
 }
 
 function errorEntryFixture(id, issueId, errorCode, archiveFilePath, prevention = "Run integrity checks before deploy.") {
-  return {
+  return makeErrorEntryFixture({
     id,
-    projectId: WORKSPACE_ID,
     sourceIssueId: issueId,
+    workspaceId: WORKSPACE_ID,
     errorCode,
-    title: `Integrity verify entry ${id}`,
-    category: "verify",
-    symptom: "integrity check smoke",
-    rootCause: "verify fixture",
-    resolution: "integrity check detected or passed fixture",
-    prevention,
     archiveFilePath,
-    relatedFiles: [],
-    relatedCommits: [],
-    createdAt: NOW,
-    updatedAt: NOW,
-  };
+    now: NOW,
+    overrides: {
+      title: `Integrity verify entry ${id}`,
+      symptom: "integrity check smoke",
+      rootCause: "verify fixture",
+      resolution: "integrity check detected or passed fixture",
+      prevention,
+    },
+  });
 }
 
 function hasFailedCheck(report, id) {
