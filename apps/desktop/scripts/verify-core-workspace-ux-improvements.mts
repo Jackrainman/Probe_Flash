@@ -1,11 +1,11 @@
-import { readFileSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
 import { buildQuickIssueCardFromLine, defaultIntakeOptions } from "../src/domain/issue-intake.ts";
 import { DEFAULT_WORKSPACE_ID } from "../src/domain/workspace.ts";
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 const WORKSPACE_NAME = "CORE-02 工作区 UX";
 const NOW = "2026-04-30T02:20:00+08:00";
@@ -54,7 +54,7 @@ for (const selector of [
   if (!cssSource.includes(selector)) fail(`App.css missing workspace UX selector: ${selector}`);
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-core-workspace-ux-"));
+const workdir = createTempDir("probeflash-core-workspace-ux").path;
 const dbPath = join(workdir, "probeflash.core-workspace-ux.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

@@ -1,5 +1,4 @@
-import { readFileSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
@@ -13,6 +12,7 @@ import {
   type RecentIssueStorage,
 } from "../src/storage/recent-issue-reopen.ts";
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 const NOW = "2026-04-30T03:00:00+08:00";
 
@@ -60,7 +60,7 @@ for (const marker of requiredAppMarkers) {
   if (!uiSource.includes(marker)) fail(`UI source missing recent issue reopen marker: ${marker}`);
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-core-recent-issue-reopen-"));
+const workdir = createTempDir("probeflash-core-recent-issue-reopen").path;
 const dbPath = join(workdir, "probeflash.core-recent-issue-reopen.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

@@ -1,9 +1,8 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const NOW = "2026-04-26T12:00:00+08:00";
@@ -167,7 +166,7 @@ function countRows(dbPath, tableName) {
   }
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-server-schema-contract-"));
+const workdir = createTempDir("probeflash-server-schema-contract").path;
 const dbPath = join(workdir, "probeflash.schema-contract.sqlite");
 const server = await startProbeFlashServer({
   host: "127.0.0.1",

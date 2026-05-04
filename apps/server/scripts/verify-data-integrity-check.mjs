@@ -1,5 +1,3 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { spawnSync } from "node:child_process";
@@ -7,6 +5,7 @@ import { DatabaseSync } from "node:sqlite";
 
 import { createProbeFlashDatabase } from "../src/database.mjs";
 import { createIntegrityReport } from "./integrity-check.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const NOW = "2026-04-27T15:30:00+08:00";
@@ -203,7 +202,7 @@ function createBrokenDb(dbPath) {
   }
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-data-integrity-check-"));
+const workdir = createTempDir("probeflash-data-integrity-check").path;
 const cleanDbPath = join(workdir, "clean.sqlite");
 const brokenDbPath = join(workdir, "broken.sqlite");
 

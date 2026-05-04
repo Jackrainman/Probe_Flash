@@ -1,8 +1,7 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 function fail(reason, detail) {
   console.error(`[S4-OPERABILITY-HEALTH-STATUS verify] FAIL: ${reason}`);
@@ -18,7 +17,7 @@ async function readJson(url) {
   return { response, payload };
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-operability-"));
+const workdir = createTempDir("probeflash-operability").path;
 const server = await startProbeFlashServer({
   host: "127.0.0.1",
   port: 0,

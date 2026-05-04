@@ -1,8 +1,8 @@
-import { mkdirSync, mkdtempSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { mkdirSync, writeFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 function fail(reason, detail) {
   console.error(`[RELEASE-STATIC-WEB-SERVE verify] FAIL: ${reason}`);
@@ -40,7 +40,7 @@ function restoreEnv(previousEnv) {
   }
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-release-static-"));
+const workdir = createTempDir("probeflash-release-static").path;
 const staticDir = join(workdir, "dist");
 const dbPath = join(workdir, "probeflash.static.sqlite");
 

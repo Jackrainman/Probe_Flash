@@ -1,5 +1,3 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
@@ -13,6 +11,7 @@ import type { ErrorEntry } from "../src/domain/schemas/error-entry.ts";
 import type { IssueCard } from "../src/domain/schemas/issue-card.ts";
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
 import type { StorageRepository, StorageSearchFilters, StorageSearchResult } from "../src/storage/storage-repository.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const OPEN_TIME = "2026-04-25T10:00:00+08:00";
@@ -153,7 +152,7 @@ function hasTag(item: StorageSearchResult["items"][number], tag: string): boolea
   return item.tags?.some((candidate) => candidate.toLocaleLowerCase() === tag.toLocaleLowerCase()) ?? false;
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-search-filters-desktop-"));
+const workdir = createTempDir("probeflash-search-filters-desktop").path;
 const dbPath = join(workdir, "probeflash.search-filters.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

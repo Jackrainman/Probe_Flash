@@ -1,5 +1,3 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
@@ -14,6 +12,7 @@ import {
   installSearchVerifyLocalStorage,
   SEARCH_VERIFY_WORKSPACE_ID,
 } from "./search-verify-fixtures.mts";
+import { createTempDir } from "./verify-helpers.mts";
 
 const WORKSPACE_ID = SEARCH_VERIFY_WORKSPACE_ID;
 const OTHER_WORKSPACE_ID = "workspace-search-similar-other";
@@ -219,7 +218,7 @@ assert(
   localResult,
 );
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-search-similar-desktop-"));
+const workdir = createTempDir("probeflash-search-similar-desktop").path;
 const dbPath = join(workdir, "probeflash.search-similar.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

@@ -1,6 +1,4 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -24,6 +22,7 @@ import {
   storageWriteErrorToFeedback,
 } from "../src/storage/storage-feedback.ts";
 import { orchestrateIssueCloseout } from "../src/use-cases/closeout-orchestrator.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 const WORKSPACE_ID = "workspace-26-r1";
 
@@ -622,7 +621,7 @@ async function verifyHttpWriteFailure(status: 500 | 503, code: "STORAGE_ERROR" |
   }
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-local-e2e-"));
+const workdir = createTempDir("probeflash-local-e2e").path;
 const dbPath = join(workdir, "probeflash.local-e2e.sqlite");
 const server = await startProbeFlashServer({
   host: "127.0.0.1",

@@ -1,5 +1,3 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -13,6 +11,7 @@ import type { IssueCard } from "../src/domain/schemas/issue-card.ts";
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
 import type { StorageRepository } from "../src/storage/storage-repository.ts";
 import { orchestrateIssueCloseout } from "../src/use-cases/closeout-orchestrator.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 const DEFAULT_WORKSPACE_ID = "workspace-26-r1";
 const NEW_WORKSPACE_NAME = "舵轮调试";
@@ -117,7 +116,7 @@ async function saveIssue(repository: StorageRepository, issue: IssueCard) {
   assert(saved.ok, "issue save should succeed", saved);
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-workspace-create-"));
+const workdir = createTempDir("probeflash-workspace-create").path;
 const dbPath = join(workdir, "probeflash.workspace-create.sqlite");
 const server = await startProbeFlashServer({
   host: "127.0.0.1",

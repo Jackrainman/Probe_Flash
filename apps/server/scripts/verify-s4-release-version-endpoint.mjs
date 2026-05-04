@@ -1,9 +1,8 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { getReleaseMetadata } from "../src/release-metadata.mjs";
 import { startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 function fail(reason, detail) {
   console.error(`[S4-RELEASE-VERSION-ENDPOINT verify] FAIL: ${reason}`);
@@ -38,9 +37,9 @@ for (const key of Object.keys(previousEnv)) {
 try {
   const fallbackRelease = getReleaseMetadata();
   if (
-    fallbackRelease.version !== "0.2.0" ||
+    fallbackRelease.version !== "0.3.0" ||
     fallbackRelease.commit !== "unknown" ||
-    fallbackRelease.releaseTag !== "v0.2.0"
+    fallbackRelease.releaseTag !== "v0.3.0"
   ) {
     fail("default release metadata should come from package version without requiring .git", fallbackRelease);
   }
@@ -54,7 +53,7 @@ try {
   }
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-version-"));
+const workdir = createTempDir("probeflash-version").path;
 const server = await startProbeFlashServer({
   host: "127.0.0.1",
   port: 0,

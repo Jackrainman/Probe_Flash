@@ -1,5 +1,4 @@
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join } from "node:path";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
@@ -15,6 +14,7 @@ import {
   installSearchVerifyLocalStorage,
   SEARCH_VERIFY_WORKSPACE_ID,
 } from "./search-verify-fixtures.mts";
+import { createTempDir } from "./verify-helpers.mts";
 
 const WORKSPACE_ID = SEARCH_VERIFY_WORKSPACE_ID;
 const NOW = "2026-04-28T22:15:00+08:00";
@@ -142,7 +142,7 @@ installSearchVerifyLocalStorage();
 const localRepository = createStorageRepository({ workspaceId: WORKSPACE_ID });
 await verifyRepositoryLinking(localRepository, "local");
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-search-linking-desktop-"));
+const workdir = createTempDir("probeflash-search-linking-desktop").path;
 const dbPath = join(workdir, "probeflash.search-linking.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

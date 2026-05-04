@@ -1,8 +1,7 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const NOW = "2026-04-27T18:00:00+08:00";
@@ -181,7 +180,7 @@ function hasKind(data, kind, text) {
   );
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-search-basic-server-"));
+const workdir = createTempDir("probeflash-search-basic-server").path;
 const dbPath = join(workdir, "probeflash.search.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

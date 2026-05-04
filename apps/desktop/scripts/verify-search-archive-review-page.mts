@@ -1,7 +1,5 @@
 import { readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
-import { mkdtempSync } from "node:fs";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
 import { buildIssueCardFromIntake, defaultIntakeOptions } from "../src/domain/issue-intake.ts";
@@ -11,6 +9,7 @@ import type { IssueCard } from "../src/domain/schemas/issue-card.ts";
 import { loadArchiveIndex } from "../src/storage/archive-index.ts";
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
 import { createStorageRepository, type StorageRepository } from "../src/storage/storage-repository.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 interface LocalStorageShape {
   getItem(key: string): string | null;
@@ -256,7 +255,7 @@ assertArchiveReviewIndex(
   localOtherFixture,
 );
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-archive-review-desktop-"));
+const workdir = createTempDir("probeflash-archive-review-desktop").path;
 const dbPath = join(workdir, "probeflash.archive-review.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

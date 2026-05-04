@@ -1,11 +1,11 @@
-import { existsSync, mkdtempSync, readFileSync, writeFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { createBackupExport } from "./backup-export.mjs";
 import { restoreDryRun } from "./restore-dry-run.mjs";
 import { startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 
@@ -48,7 +48,7 @@ function expectThrow(fn, expectedMessage) {
   fail("expected restore dry-run failure", { expectedMessage });
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-restore-dry-run-"));
+const workdir = createTempDir("probeflash-restore-dry-run").path;
 const dbPath = join(workdir, "probeflash.sqlite");
 const backupDir = join(workdir, "backups");
 const restoreTmpDir = join(workdir, "restore-temp");

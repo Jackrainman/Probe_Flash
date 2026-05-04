@@ -1,6 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -13,6 +12,7 @@ import {
   writePersistedFormDraft,
 } from "../src/storage/form-draft-store.ts";
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 type QuickIssueDraft = {
   line: string;
@@ -115,7 +115,7 @@ function readFormDraftRowCount(dbPath: string, workspaceId?: string): number {
   }
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-form-drafts-"));
+const workdir = createTempDir("probeflash-form-drafts").path;
 const dbPath = join(workdir, "probeflash.form-drafts.sqlite");
 const server = await startProbeFlashServer({
   host: "127.0.0.1",

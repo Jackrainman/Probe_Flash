@@ -1,10 +1,10 @@
-import { existsSync, mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { createBackupExport } from "./backup-export.mjs";
 import { startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 
@@ -34,7 +34,7 @@ function countRows(dbPath, tableName) {
   }
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-backup-export-"));
+const workdir = createTempDir("probeflash-backup-export").path;
 const dbPath = join(workdir, "probeflash.sqlite");
 const backupDir = join(workdir, "backups");
 const server = await startProbeFlashServer({

@@ -1,9 +1,8 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const NOW = "2026-04-27T20:10:00+08:00";
@@ -202,7 +201,7 @@ function insertLegacyIssueRow(dbPath, workspaceId) {
   }
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-search-tags-server-"));
+const workdir = createTempDir("probeflash-search-tags-server").path;
 const dbPath = join(workdir, "probeflash.search-tags.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

@@ -1,6 +1,5 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -18,6 +17,7 @@ import {
   storageReadErrorToFeedback,
   storageWriteErrorToFeedback,
 } from "../src/storage/storage-feedback.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 function fail(reason: string, detail?: unknown): never {
   console.error(`[S3-LOCAL-HTTP-STORAGE-ADAPTER verify] FAIL: ${reason}`);
@@ -67,7 +67,7 @@ async function reserveClosedPort(): Promise<number> {
   return port;
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-http-adapter-"));
+const workdir = createTempDir("probeflash-http-adapter").path;
 const dbPath = join(workdir, "probeflash.http-adapter.sqlite");
 const server = await startProbeFlashServer({
   host: "127.0.0.1",

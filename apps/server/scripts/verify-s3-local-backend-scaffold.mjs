@@ -1,10 +1,10 @@
-import { existsSync, mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { existsSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 import { fileURLToPath } from "node:url";
 
 import { DEFAULT_DB_PATH, startProbeFlashServer } from "../src/server.mjs";
+import { createTempDir } from "./verify-helpers.mjs";
 
 function fail(reason, detail) {
   console.error(`[S3-LOCAL-BACKEND-SCAFFOLD verify] FAIL: ${reason}`);
@@ -14,7 +14,7 @@ function fail(reason, detail) {
   process.exit(1);
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-server-"));
+const workdir = createTempDir("probeflash-server").path;
 const dbPath = join(workdir, "probeflash.local.sqlite");
 const expectedDefaultDbPath = resolve(
   dirname(fileURLToPath(import.meta.url)),
@@ -163,7 +163,7 @@ try {
   await server.close();
 }
 
-const deployWorkdir = mkdtempSync(join(tmpdir(), "probeflash-server-deploy-env-"));
+const deployWorkdir = createTempDir("probeflash-server-deploy-env").path;
 const deployDbPath = join(deployWorkdir, "custom.sqlite");
 const deployLogDir = join(deployWorkdir, "logs");
 

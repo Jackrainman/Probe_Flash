@@ -1,5 +1,3 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
@@ -13,6 +11,7 @@ import {
 import type { InvestigationRecord } from "../src/domain/schemas/investigation-record.ts";
 import type { IssueCard } from "../src/domain/schemas/issue-card.ts";
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
+import { createTempDir } from "./verify-helpers.mts";
 import type { StorageRepository } from "../src/storage/storage-repository.ts";
 import { closeoutFailureToFeedback, formatStorageFeedbackError } from "../src/storage/storage-feedback.ts";
 import { createUnexpectedWriteError } from "../src/storage/storage-result.ts";
@@ -289,7 +288,7 @@ async function verifyIssueStatusWriteFailure(repository: StorageRepository, dbPa
   await assertIssueOpen(repository, fixture.issue.id, "issue status retry");
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-data-05-partial-closeout-"));
+const workdir = createTempDir("probeflash-data-05-partial-closeout").path;
 const dbPath = join(workdir, "probeflash.partial-closeout.sqlite");
 const server = await startProbeFlashServer({
   host: "127.0.0.1",

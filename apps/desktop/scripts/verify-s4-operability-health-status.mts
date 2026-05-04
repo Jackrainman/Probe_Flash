@@ -1,10 +1,10 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
-import { mkdtempSync, readFileSync } from "node:fs";
-import { tmpdir } from "node:os";
+import { readFileSync } from "node:fs";
 import { join, resolve } from "node:path";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
 import { checkHttpStorageHealth } from "../src/storage/http-storage-repository.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 function fail(reason: string, detail?: unknown): never {
   console.error(`[S4-OPERABILITY-HEALTH-STATUS desktop verify] FAIL: ${reason}`);
@@ -45,7 +45,7 @@ async function startMockServer(
   };
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-desktop-health-"));
+const workdir = createTempDir("probeflash-desktop-health").path;
 const server = await startProbeFlashServer({
   host: "127.0.0.1",
   port: 0,

@@ -1,5 +1,3 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
@@ -9,6 +7,7 @@ import type { ErrorEntry } from "../src/domain/schemas/error-entry.ts";
 import type { IssueCard } from "../src/domain/schemas/issue-card.ts";
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
 import { createStorageRepository, type StorageRepository, type StorageSearchResult } from "../src/storage/storage-repository.ts";
+import { createTempDir } from "./verify-helpers.mts";
 
 interface LocalStorageShape {
   getItem(key: string): string | null;
@@ -216,7 +215,7 @@ assert(hasKind(localOtherIsolation, "issue", "issue-search-tags-local-other"), "
 const localLegacy = await expectSearch(localRepository, "legacy no tag sentinel");
 assert(hasKind(localLegacy, "issue", "issue-search-tags-legacy-local"), "localStorage fallback: legacy issue without tags should remain searchable", localLegacy);
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-search-tags-desktop-"));
+const workdir = createTempDir("probeflash-search-tags-desktop").path;
 const dbPath = join(workdir, "probeflash.search-tags.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 
