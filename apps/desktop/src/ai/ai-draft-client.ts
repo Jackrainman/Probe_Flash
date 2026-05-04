@@ -53,33 +53,19 @@ function pathForWorkspace(workspaceId: string, suffix: string): string {
   return `/workspaces/${encodeURIComponent(workspaceId)}${suffix}`;
 }
 
+const REQUEST_ERROR_FAILURE: Record<HttpStorageRequestError["type"], { code: string; retryable: boolean }> = {
+  http_error: { code: "", retryable: false },
+  timeout: { code: "AI_CLIENT_TIMEOUT", retryable: true },
+  server_unreachable: { code: "AI_SERVER_UNREACHABLE", retryable: true },
+  invalid_envelope: { code: "AI_INVALID_ENVELOPE", retryable: false },
+};
+
 function failureFromRequestError(error: HttpStorageRequestError): AiDraftFailure {
-  switch (error.type) {
-    case "http_error":
-      return {
-        code: error.code,
-        message: error.message,
-        retryable: error.retryable,
-      };
-    case "timeout":
-      return {
-        code: "AI_CLIENT_TIMEOUT",
-        message: error.message,
-        retryable: true,
-      };
-    case "server_unreachable":
-      return {
-        code: "AI_SERVER_UNREACHABLE",
-        message: error.message,
-        retryable: true,
-      };
-    case "invalid_envelope":
-      return {
-        code: "AI_INVALID_ENVELOPE",
-        message: error.message,
-        retryable: false,
-      };
+  if (error.type === "http_error") {
+    return { code: error.code, message: error.message, retryable: error.retryable };
   }
+  const { code, retryable } = REQUEST_ERROR_FAILURE[error.type];
+  return { code, message: error.message, retryable };
 }
 
 function failureFromUnknown(error: unknown): AiDraftFailure {
@@ -92,6 +78,11 @@ function failureFromUnknown(error: unknown): AiDraftFailure {
     retryable: false,
   };
 }
+
+const schemaFailure = (code: string, message: string): GenerateAiDraftResult => ({
+  ok: false,
+  failure: { code, message, retryable: false },
+});
 
 export async function loadAiProviderStatus(
   workspaceId: string,
@@ -123,43 +114,17 @@ export async function generateAiCloseoutDraft({
   try {
     const response = await client.request<unknown>(
       pathForWorkspace(issue.projectId, "/ai/closeout-draft"),
-      {
-        method: "POST",
-        body: JSON.stringify({
-          issueId: issue.id,
-          task,
-          closeoutDraft,
-        }),
-      },
+      { method: "POST", body: JSON.stringify({ issueId: issue.id, task, closeoutDraft }) },
     );
     const envelope = AiDraftResponseSchema.safeParse(response);
     if (!envelope.success) {
-      return {
-        ok: false,
-        failure: {
-          code: "AI_RESPONSE_SCHEMA_ERROR",
-          message: "AI response envelope did not match the expected schema",
-          retryable: false,
-        },
-      };
+      return schemaFailure("AI_RESPONSE_SCHEMA_ERROR", "AI response envelope did not match the expected schema");
     }
     const output = AiDraftOutputSchema.safeParse(envelope.data.output);
     if (!output.success) {
-      return {
-        ok: false,
-        failure: {
-          code: "AI_DRAFT_SCHEMA_ERROR",
-          message: "AI draft output did not match the expected schema",
-          retryable: false,
-        },
-      };
+      return schemaFailure("AI_DRAFT_SCHEMA_ERROR", "AI draft output did not match the expected schema");
     }
-    return {
-      ok: true,
-      provider: envelope.data.provider,
-      model: envelope.data.model,
-      output: output.data,
-    };
+    return { ok: true, provider: envelope.data.provider, model: envelope.data.model, output: output.data };
   } catch (error) {
     return { ok: false, failure: failureFromUnknown(error) };
   }

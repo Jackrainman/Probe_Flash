@@ -32,18 +32,27 @@ export function recentIssueStorageKey(workspaceId: string): string {
   return `${RECENT_ISSUE_STORAGE_KEY_PREFIX}${encodeURIComponent(workspaceId)}`;
 }
 
+function withStorage<T>(
+  storage: RecentIssueStorage | null,
+  fn: (storage: RecentIssueStorage) => T,
+  fallback: T,
+): T {
+  if (storage === null) return fallback;
+  try {
+    return fn(storage);
+  } catch {
+    return fallback;
+  }
+}
+
 export function readRecentIssueIdForWorkspace(
   storage: RecentIssueStorage | null,
   workspaceId: string,
 ): string | null {
-  if (storage === null) return null;
-  try {
-    const raw = storage.getItem(recentIssueStorageKey(workspaceId));
-    const issueId = raw?.trim() ?? "";
+  return withStorage(storage, (s) => {
+    const issueId = s.getItem(recentIssueStorageKey(workspaceId))?.trim() ?? "";
     return issueId.length > 0 ? issueId : null;
-  } catch {
-    return null;
-  }
+  }, null);
 }
 
 export function writeRecentIssueIdForWorkspace(
@@ -51,28 +60,22 @@ export function writeRecentIssueIdForWorkspace(
   workspaceId: string,
   issueId: string,
 ): boolean {
-  if (storage === null) return false;
   const normalizedIssueId = issueId.trim();
   if (normalizedIssueId.length === 0) return false;
-  try {
-    storage.setItem(recentIssueStorageKey(workspaceId), normalizedIssueId);
+  return withStorage(storage, (s) => {
+    s.setItem(recentIssueStorageKey(workspaceId), normalizedIssueId);
     return true;
-  } catch {
-    return false;
-  }
+  }, false);
 }
 
 export function clearRecentIssueIdForWorkspace(
   storage: RecentIssueStorage | null,
   workspaceId: string,
 ): boolean {
-  if (storage === null) return false;
-  try {
-    storage.removeItem(recentIssueStorageKey(workspaceId));
+  return withStorage(storage, (s) => {
+    s.removeItem(recentIssueStorageKey(workspaceId));
     return true;
-  } catch {
-    return false;
-  }
+  }, false);
 }
 
 export function isRecentIssueReopenableStatus(status: IssueCard["status"]): boolean {
@@ -98,13 +101,9 @@ export function resolveRecentIssueReopen(
   workspaceId: string,
   candidates: RecentIssueCandidate[],
 ): { state: RecentIssueReopenState; issueIdToOpen: string | null } {
-  if (storage === null) {
-    return { state: { state: "unavailable" }, issueIdToOpen: null };
-  }
+  if (storage === null) return { state: { state: "unavailable" }, issueIdToOpen: null };
   const issueId = readRecentIssueIdForWorkspace(storage, workspaceId);
-  if (issueId === null) {
-    return { state: { state: "none" }, issueIdToOpen: null };
-  }
+  if (issueId === null) return { state: { state: "none" }, issueIdToOpen: null };
   const candidate = candidates.find((item) => item.id === issueId);
   if (candidate === undefined) {
     clearRecentIssueIdForWorkspace(storage, workspaceId);

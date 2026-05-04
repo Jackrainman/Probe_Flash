@@ -58,19 +58,12 @@ export interface HttpStorageClient {
 }
 
 function normalizeBaseUrl(baseUrl: string): string {
-  if (baseUrl.endsWith("/")) {
-    return baseUrl.slice(0, -1);
-  }
-  return baseUrl;
+  return baseUrl.endsWith("/") ? baseUrl.slice(0, -1) : baseUrl;
 }
 
 function buildUrl(baseUrl: string, path: string): string {
-  if (path.startsWith("http://") || path.startsWith("https://")) {
-    return path;
-  }
-  if (path.length === 0) {
-    return baseUrl;
-  }
+  if (path.startsWith("http://") || path.startsWith("https://")) return path;
+  if (path.length === 0) return baseUrl;
   return `${baseUrl}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
@@ -86,47 +79,32 @@ function isApiErrorEnvelope(payload: unknown): payload is ApiErrorEnvelope {
   return isObject(payload) && payload.ok === false && isObject(payload.error);
 }
 
+const API_ERROR_CODE_BY_STATUS: Record<number, string> = {
+  400: "BAD_REQUEST",
+  404: "NOT_FOUND",
+  409: "CONFLICT",
+  422: "VALIDATION_ERROR",
+  503: "SERVICE_UNAVAILABLE",
+};
+
 function normalizeApiErrorCode(status: number, code: unknown): string {
-  if (typeof code === "string" && code.trim().length > 0) {
-    return code;
-  }
-  switch (status) {
-    case 400:
-      return "BAD_REQUEST";
-    case 404:
-      return "NOT_FOUND";
-    case 409:
-      return "CONFLICT";
-    case 422:
-      return "VALIDATION_ERROR";
-    case 503:
-      return "SERVICE_UNAVAILABLE";
-    default:
-      return "STORAGE_ERROR";
-  }
+  if (typeof code === "string" && code.trim().length > 0) return code;
+  return API_ERROR_CODE_BY_STATUS[status] ?? "STORAGE_ERROR";
 }
 
 function normalizeApiErrorMessage(status: number, message: unknown): string {
-  if (typeof message === "string" && message.trim().length > 0) {
-    return message;
-  }
+  if (typeof message === "string" && message.trim().length > 0) return message;
   return status >= 500 ? "server storage request failed" : "request failed";
 }
 
 function normalizeNetworkMessage(error: unknown): string {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-  if (typeof error === "string" && error.trim().length > 0) {
-    return error;
-  }
-  return "network request failed";
+  const candidate = error instanceof Error ? error.message : typeof error === "string" ? error : "";
+  return candidate.trim().length > 0 ? candidate : "network request failed";
 }
 
 function isAbortError(error: unknown): boolean {
-  return error instanceof DOMException
-    ? error.name === "AbortError"
-    : error instanceof Error && error.name === "AbortError";
+  if (error instanceof DOMException) return error.name === "AbortError";
+  return error instanceof Error && error.name === "AbortError";
 }
 
 function resolveTimeoutMs(timeoutMs?: number): number {

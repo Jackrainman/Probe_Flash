@@ -64,6 +64,19 @@ export function formDraftStorageKey(scope: FormDraftScope): string {
   ].join("");
 }
 
+function parsePayload<T>(
+  payload: string | null,
+  parse: (value: unknown) => T | null,
+): ReadFormDraftResult<T> {
+  if (payload === null) return { state: "empty", data: null };
+  try {
+    const parsed = parse(JSON.parse(payload));
+    return parsed === null ? { state: "invalid", data: null } : { state: "restored", data: parsed };
+  } catch {
+    return { state: "invalid", data: null };
+  }
+}
+
 export function readFormDraft<T>(
   storage: FormDraftStorage | null,
   scope: FormDraftScope,
@@ -71,12 +84,7 @@ export function readFormDraft<T>(
 ): ReadFormDraftResult<T> {
   if (storage === null) return { state: "unavailable", data: null };
   try {
-    const raw = storage.getItem(formDraftStorageKey(scope));
-    if (raw === null) return { state: "empty", data: null };
-    const parsed = parse(JSON.parse(raw));
-    return parsed === null
-      ? { state: "invalid", data: null }
-      : { state: "restored", data: parsed };
+    return parsePayload(storage.getItem(formDraftStorageKey(scope)), parse);
   } catch {
     return { state: "invalid", data: null };
   }
@@ -116,20 +124,6 @@ function readLocalFormDraft<T>(
   return { ...local, source: local.state === "unavailable" ? "none" : "local", remoteError };
 }
 
-function readPayloadJson<T>(
-  payloadJson: string,
-  parse: (value: unknown) => T | null,
-): ReadFormDraftResult<T> {
-  try {
-    const parsed = parse(JSON.parse(payloadJson));
-    return parsed === null
-      ? { state: "invalid", data: null }
-      : { state: "restored", data: parsed };
-  } catch {
-    return { state: "invalid", data: null };
-  }
-}
-
 export async function readPersistedFormDraft<T>(
   repository: FormDraftRepositoryPort,
   storage: FormDraftStorage | null,
@@ -137,14 +131,9 @@ export async function readPersistedFormDraft<T>(
   parse: (value: unknown) => T | null,
 ): Promise<ReadPersistedFormDraftResult<T>> {
   const remote = await repository.load(scope);
-  if (!remote.ok) {
-    return readLocalFormDraft(storage, scope, parse, remote.error);
-  }
-  if (remote.draft === null) {
-    return readLocalFormDraft(storage, scope, parse);
-  }
-  const parsed = readPayloadJson(remote.draft.payloadJson, parse);
-  return { ...parsed, source: "server" };
+  if (!remote.ok) return readLocalFormDraft(storage, scope, parse, remote.error);
+  if (remote.draft === null) return readLocalFormDraft(storage, scope, parse);
+  return { ...parsePayload(remote.draft.payloadJson, parse), source: "server" };
 }
 
 export async function writePersistedFormDraft(
@@ -160,16 +149,11 @@ export async function writePersistedFormDraft(
     return "unavailable";
   }
 
-  const remote = await repository.save({
-    ...scope,
-    payloadJson,
-    updatedAt: new Date().toISOString(),
-  });
+  const remote = await repository.save({ ...scope, payloadJson, updatedAt: new Date().toISOString() });
   if (remote.ok) {
     writeFormDraft(storage, scope, value);
     return "server";
   }
-
   return writeFormDraft(storage, scope, value) ? "local" : "unavailable";
 }
 

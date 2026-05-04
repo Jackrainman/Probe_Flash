@@ -34,9 +34,7 @@ const STATIC_CONTENT_TYPES = new Map([
 ]);
 
 function json(res, statusCode, payload) {
-  res.writeHead(statusCode, {
-    "content-type": "application/json; charset=utf-8",
-  });
+  res.writeHead(statusCode, { "content-type": "application/json; charset=utf-8" });
   res.end(JSON.stringify(payload));
 }
 
@@ -45,23 +43,11 @@ function ok(res, data, statusCode = 200) {
 }
 
 function fail(res, statusCode, code, message, operation, retryable, details = {}) {
-  json(res, statusCode, {
-    ok: false,
-    error: {
-      code,
-      message,
-      operation,
-      retryable,
-      details,
-    },
-  });
+  json(res, statusCode, { ok: false, error: { code, message, operation, retryable, details } });
 }
 
 function text(res, statusCode, body, headers = {}) {
-  res.writeHead(statusCode, {
-    "content-type": "text/plain; charset=utf-8",
-    ...headers,
-  });
+  res.writeHead(statusCode, { "content-type": "text/plain; charset=utf-8", ...headers });
   res.end(body);
 }
 
@@ -153,22 +139,19 @@ async function serveStaticRequest(req, res, url, staticDir) {
   return text(res, 404, "static file not found");
 }
 
-function parseAppError(error, fallbackOperation) {
+const APP_ERROR_TABLE = {
+  BAD_REQUEST: [400, "BAD_REQUEST", false],
+  NOT_FOUND: [404, "NOT_FOUND", false],
+  CONFLICT: [409, "CONFLICT", false],
+  VALIDATION_ERROR: [422, "VALIDATION_ERROR", false],
+  SERVICE_UNAVAILABLE: [503, "SERVICE_UNAVAILABLE", true],
+};
+
+function parseAppError(error) {
   const code = error?.code ?? "STORAGE_ERROR";
-  switch (code) {
-    case "BAD_REQUEST":
-      return [400, "BAD_REQUEST", error.message, false];
-    case "NOT_FOUND":
-      return [404, "NOT_FOUND", error.message, false];
-    case "CONFLICT":
-      return [409, "CONFLICT", error.message, false];
-    case "VALIDATION_ERROR":
-      return [422, "VALIDATION_ERROR", error.message, false];
-    case "SERVICE_UNAVAILABLE":
-      return [503, "SERVICE_UNAVAILABLE", error.message, true];
-    default:
-      return [500, "STORAGE_ERROR", error?.message ?? "unexpected storage error", true];
-  }
+  const entry = APP_ERROR_TABLE[code];
+  if (entry) return [entry[0], entry[1], error.message, entry[2]];
+  return [500, "STORAGE_ERROR", error?.message ?? "unexpected storage error", true];
 }
 
 async function readJson(req) {
@@ -251,6 +234,7 @@ function storageInitFailureDetails(releaseMetadata) {
 }
 
 function createRequestHandler({ store, storeInitError, staticDir, releaseMetadata }) {
+  const param = (match, index) => decodeURIComponent(match[index]);
   return async (req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const method = req.method ?? "GET";
@@ -318,7 +302,7 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
       }
 
       if (workspaceDetailMatch && method === "GET") {
-        return ok(res, store.getWorkspace(decodeURIComponent(workspaceDetailMatch[1])));
+        return ok(res, store.getWorkspace(param(workspaceDetailMatch, 1)));
       }
 
       if (aiStatusMatch && method === "GET") {
@@ -326,7 +310,7 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
       }
 
       if (aiCloseoutDraftMatch && method === "POST") {
-        const workspaceId = decodeURIComponent(aiCloseoutDraftMatch[1]);
+        const workspaceId = param(aiCloseoutDraftMatch, 1);
         const payload = await readJson(req);
         const request = normalizeAiCloseoutDraftRequest(payload);
         if (!request.ok) {
@@ -338,10 +322,7 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
           records: store.listRecords(workspaceId, request.issueId),
           closeoutDraft: request.closeoutDraft,
         });
-        const result = await generateDeepSeekDraft({
-          task: prompt.task,
-          messages: prompt.messages,
-        });
+        const result = await generateDeepSeekDraft({ task: prompt.task, messages: prompt.messages });
         if (!result.ok) {
           return fail(
             res,
@@ -353,54 +334,41 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
             result.error.details,
           );
         }
-        return ok(res, {
-          provider: result.provider,
-          model: result.model,
-          task: result.task,
-          output: result.output,
-        });
+        return ok(res, { provider: result.provider, model: result.model, task: result.task, output: result.output });
       }
 
       if (issueListMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(issueListMatch[1]);
+        const workspaceId = param(issueListMatch, 1);
         const status = url.searchParams.get("status") ?? "active";
         return ok(res, { items: store.listIssues(workspaceId, status) });
       }
 
       if (issueListMatch && method === "POST") {
-        const workspaceId = decodeURIComponent(issueListMatch[1]);
+        const workspaceId = param(issueListMatch, 1);
         const payload = await readJson(req);
         return ok(res, store.createIssue(workspaceId, payload), 201);
       }
 
       if (issueDetailMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(issueDetailMatch[1]);
-        const issueId = decodeURIComponent(issueDetailMatch[2]);
-        return ok(res, store.getIssue(workspaceId, issueId));
+        return ok(res, store.getIssue(param(issueDetailMatch, 1), param(issueDetailMatch, 2)));
       }
 
       if (issueDetailMatch && method === "PUT") {
-        const workspaceId = decodeURIComponent(issueDetailMatch[1]);
-        const issueId = decodeURIComponent(issueDetailMatch[2]);
         const payload = await readJson(req);
-        return ok(res, store.updateIssue(workspaceId, issueId, payload));
+        return ok(res, store.updateIssue(param(issueDetailMatch, 1), param(issueDetailMatch, 2), payload));
       }
 
       if (recordListMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(recordListMatch[1]);
-        const issueId = decodeURIComponent(recordListMatch[2]);
-        return ok(res, { items: store.listRecords(workspaceId, issueId) });
+        return ok(res, { items: store.listRecords(param(recordListMatch, 1), param(recordListMatch, 2)) });
       }
 
       if (recordListMatch && method === "POST") {
-        const workspaceId = decodeURIComponent(recordListMatch[1]);
-        const issueId = decodeURIComponent(recordListMatch[2]);
         const payload = await readJson(req);
-        return ok(res, store.createRecord(workspaceId, issueId, payload), 201);
+        return ok(res, store.createRecord(param(recordListMatch, 1), param(recordListMatch, 2), payload), 201);
       }
 
       if (searchMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(searchMatch[1]);
+        const workspaceId = param(searchMatch, 1);
         return ok(res, store.search(workspaceId, {
           query: url.searchParams.get("q") ?? "",
           limit: url.searchParams.get("limit") ?? undefined,
@@ -413,59 +381,53 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
       }
 
       if (archiveListMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(archiveListMatch[1]);
-        return ok(res, { items: store.listArchives(workspaceId) });
+        return ok(res, { items: store.listArchives(param(archiveListMatch, 1)) });
       }
 
       if (archiveListMatch && method === "POST") {
-        const workspaceId = decodeURIComponent(archiveListMatch[1]);
         const payload = await readJson(req);
-        return ok(res, store.createArchive(workspaceId, payload), 201);
+        return ok(res, store.createArchive(param(archiveListMatch, 1), payload), 201);
       }
 
       if (archiveDetailMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(archiveDetailMatch[1]);
-        const fileName = decodeURIComponent(archiveDetailMatch[2]);
-        return ok(res, store.getArchive(workspaceId, fileName));
+        return ok(res, store.getArchive(param(archiveDetailMatch, 1), param(archiveDetailMatch, 2)));
       }
 
       if (errorEntryListMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(errorEntryListMatch[1]);
-        return ok(res, { items: store.listErrorEntries(workspaceId) });
+        return ok(res, { items: store.listErrorEntries(param(errorEntryListMatch, 1)) });
       }
 
       if (errorEntryListMatch && method === "POST") {
-        const workspaceId = decodeURIComponent(errorEntryListMatch[1]);
         const payload = await readJson(req);
-        return ok(res, store.createErrorEntry(workspaceId, payload), 201);
+        return ok(res, store.createErrorEntry(param(errorEntryListMatch, 1), payload), 201);
       }
 
       if (errorEntryDetailMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(errorEntryDetailMatch[1]);
-        const entryId = decodeURIComponent(errorEntryDetailMatch[2]);
-        return ok(res, store.getErrorEntry(workspaceId, entryId));
+        return ok(res, store.getErrorEntry(param(errorEntryDetailMatch, 1), param(errorEntryDetailMatch, 2)));
       }
 
       if (formDraftDetailMatch && method === "GET") {
-        const workspaceId = decodeURIComponent(formDraftDetailMatch[1]);
-        const formKind = decodeURIComponent(formDraftDetailMatch[2]);
-        const itemId = decodeURIComponent(formDraftDetailMatch[3]);
-        return ok(res, { draft: store.getFormDraft(workspaceId, formKind, itemId) });
+        return ok(res, {
+          draft: store.getFormDraft(param(formDraftDetailMatch, 1), param(formDraftDetailMatch, 2), param(formDraftDetailMatch, 3)),
+        });
       }
 
       if (formDraftDetailMatch && method === "PUT") {
-        const workspaceId = decodeURIComponent(formDraftDetailMatch[1]);
-        const formKind = decodeURIComponent(formDraftDetailMatch[2]);
-        const itemId = decodeURIComponent(formDraftDetailMatch[3]);
         const payload = await readJson(req);
-        return ok(res, store.saveFormDraft(workspaceId, formKind, itemId, payload));
+        return ok(res, store.saveFormDraft(
+          param(formDraftDetailMatch, 1),
+          param(formDraftDetailMatch, 2),
+          param(formDraftDetailMatch, 3),
+          payload,
+        ));
       }
 
       if (formDraftDetailMatch && method === "DELETE") {
-        const workspaceId = decodeURIComponent(formDraftDetailMatch[1]);
-        const formKind = decodeURIComponent(formDraftDetailMatch[2]);
-        const itemId = decodeURIComponent(formDraftDetailMatch[3]);
-        return ok(res, store.deleteFormDraft(workspaceId, formKind, itemId));
+        return ok(res, store.deleteFormDraft(
+          param(formDraftDetailMatch, 1),
+          param(formDraftDetailMatch, 2),
+          param(formDraftDetailMatch, 3),
+        ));
       }
 
       return fail(res, 404, "NOT_FOUND", "route not found", "route_lookup", false, {
@@ -473,7 +435,7 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
         path: url.pathname,
       });
     } catch (error) {
-      const [statusCode, code, message, retryable] = parseAppError(error, "request");
+      const [statusCode, code, message, retryable] = parseAppError(error);
       return fail(
         res,
         statusCode,

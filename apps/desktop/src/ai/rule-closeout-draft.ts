@@ -42,10 +42,9 @@ function firstNonEmpty(...values: Array<string | null | undefined>): string | nu
 
 function findLatestRecord(records: InvestigationRecord[], types: InvestigationRecord["type"][]): string | null {
   for (const record of [...records].reverse()) {
-    if (types.includes(record.type)) {
-      const text = textFromRecord(record);
-      if (text) return text;
-    }
+    if (!types.includes(record.type)) continue;
+    const text = textFromRecord(record);
+    if (text) return text;
   }
   return null;
 }

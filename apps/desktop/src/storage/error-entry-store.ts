@@ -4,13 +4,14 @@
 
 import type { ZodIssue } from "zod";
 import { ErrorEntrySchema, type ErrorEntry } from "../domain/schemas/error-entry.ts";
-import { persistValidatedEntity } from "./local-storage-store-helpers.ts";
-import { localStorageAdapter } from "./local-storage-adapter.ts";
 import {
-  createReadFailed,
-  type StorageReadError,
-  type StorageWriteResult,
-} from "./storage-result.ts";
+  ascByString,
+  descByString,
+  listValidatedEntities,
+  loadValidatedEntity,
+  persistValidatedEntity,
+} from "./local-storage-store-helpers.ts";
+import type { StorageReadError, StorageWriteResult } from "./storage-result.ts";
 
 const KEY_PREFIX = "repo-debug:error-entry:";
 
@@ -34,13 +35,7 @@ export interface ErrorEntryListResult {
   readError: StorageReadError | null;
 }
 
-function storageKey(id: string): string {
-  return KEY_PREFIX + id;
-}
-
-function idFromKey(key: string): string {
-  return key.startsWith(KEY_PREFIX) ? key.slice(KEY_PREFIX.length) : key;
-}
+const storageKey = (id: string): string => KEY_PREFIX + id;
 
 export function saveErrorEntry(entry: ErrorEntry): StorageWriteResult {
   return persistValidatedEntity({
@@ -53,97 +48,24 @@ export function saveErrorEntry(entry: ErrorEntry): StorageWriteResult {
 }
 
 export function loadErrorEntry(id: string): LoadErrorEntryResult {
-  let raw: string | null;
-  try {
-    raw = localStorageAdapter.getItem(storageKey(id));
-  } catch (error) {
-    return {
-      ok: false,
-      error: createReadFailed("error_entry", id, error),
-    };
-  }
-  if (raw === null) {
-    return { ok: false, error: { kind: "not_found", id } };
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    return {
-      ok: false,
-      error: {
-        kind: "parse_error",
-        id,
-        message: err instanceof Error ? err.message : String(err),
-      },
-    };
-  }
-  const result = ErrorEntrySchema.safeParse(parsed);
-  if (!result.success) {
-    return {
-      ok: false,
-      error: { kind: "validation_error", id, issues: result.error.issues },
-    };
-  }
-  return { ok: true, entry: result.data };
+  const result = loadValidatedEntity<ErrorEntry>({
+    entity: "error_entry",
+    id,
+    key: storageKey(id),
+    schema: ErrorEntrySchema,
+  });
+  return result.ok ? { ok: true, entry: result.data } : { ok: false, error: result.error };
 }
 
 export function listErrorEntries(): ErrorEntryListResult {
-  const valid: ErrorEntry[] = [];
-  const invalid: ErrorEntryListInvalidEntry[] = [];
-  let keys: string[];
-  try {
-    keys = localStorageAdapter.listKeys(KEY_PREFIX);
-  } catch (error) {
-    return {
-      valid,
-      invalid,
-      readError: createReadFailed("error_entry", KEY_PREFIX, error),
-    };
-  }
-
-  for (const key of keys) {
-    const id = idFromKey(key);
-    let raw: string | null;
-    try {
-      raw = localStorageAdapter.getItem(key);
-    } catch (error) {
-      return {
-        valid,
-        invalid,
-        readError: createReadFailed("error_entry", key, error),
-      };
-    }
-    if (raw === null) continue;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (err) {
-      invalid.push({
-        kind: "parse_error",
-        key,
-        id,
-        message: err instanceof Error ? err.message : String(err),
-      });
-      continue;
-    }
-    const result = ErrorEntrySchema.safeParse(parsed);
-    if (!result.success) {
-      invalid.push({
-        kind: "validation_error",
-        key,
-        id,
-        issues: result.error.issues,
-      });
-      continue;
-    }
-    valid.push(result.data);
-  }
-
-  valid.sort((a, b) =>
-    a.createdAt < b.createdAt ? 1 : a.createdAt > b.createdAt ? -1 : 0,
-  );
-  invalid.sort((a, b) => (a.id < b.id ? -1 : a.id > b.id ? 1 : 0));
-
-  return { valid, invalid, readError: null };
+  const result = listValidatedEntities<ErrorEntry>({
+    entity: "error_entry",
+    prefix: KEY_PREFIX,
+    schema: ErrorEntrySchema,
+  });
+  return {
+    valid: [...result.valid].sort(descByString<ErrorEntry, "createdAt">("createdAt")),
+    invalid: [...result.invalid].sort(ascByString<ErrorEntryListInvalidEntry, "id">("id")),
+    readError: result.readError,
+  };
 }

@@ -70,21 +70,17 @@ function datePartFromISO(now: string): string {
   return match ? match[1] : "0000-00-00";
 }
 
+function toSlug(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 64)
+    .replace(/-+$/g, "");
+}
+
 function slugify(value: string, fallback: string): string {
-  const slug = value
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64)
-    .replace(/-+$/g, "");
-  if (slug.length > 0) return slug;
-  const fallbackSlug = fallback
-    .toLowerCase()
-    .replace(/[^a-z0-9]+/g, "-")
-    .replace(/^-+|-+$/g, "")
-    .slice(0, 64)
-    .replace(/-+$/g, "");
-  return fallbackSlug.length > 0 ? fallbackSlug : "issue-archive";
+  return toSlug(value) || toSlug(fallback) || "issue-archive";
 }
 
 function unique(values: string[]): string[] {
@@ -164,6 +160,19 @@ function renderArchiveMarkdown(
   ].join("\n");
 }
 
+function safeParseOrFailure<T>(
+  schema: { safeParse: (value: unknown) => z.SafeParseReturnType<unknown, T> },
+  draft: unknown,
+  prefix: string,
+): { ok: true; data: T } | CloseoutFailure {
+  const parsed = schema.safeParse(draft);
+  if (parsed.success) return { ok: true, data: parsed.data };
+  const first = parsed.error.issues[0];
+  return first
+    ? failureFromIssue(prefix, first)
+    : { ok: false, reason: `${prefix}: schema validation failed` };
+}
+
 export function buildCloseoutFromIssue(
   issueCard: IssueCard,
   records: InvestigationRecord[],
@@ -205,7 +214,7 @@ export function buildCloseoutFromIssue(
   ]);
   const tags = uniqueTags([...issueCard.tags, input.category]);
 
-  const archiveDraft: ArchiveDocument = {
+  const archiveResult = safeParseOrFailure<ArchiveDocument>(ArchiveDocumentSchema, {
     issueId: issueCard.id,
     projectId: issueCard.projectId,
     fileName,
@@ -213,16 +222,10 @@ export function buildCloseoutFromIssue(
     markdownContent: renderArchiveMarkdown(issueCard, sortedRecords, input, opts.now),
     generatedBy: opts.generatedBy,
     generatedAt: opts.now,
-  };
-  const archiveParsed = ArchiveDocumentSchema.safeParse(archiveDraft);
-  if (!archiveParsed.success) {
-    const first = archiveParsed.error.issues[0];
-    return first
-      ? failureFromIssue("archiveDocument", first)
-      : { ok: false, reason: "archiveDocument: schema validation failed" };
-  }
+  }, "archiveDocument");
+  if (!archiveResult.ok) return archiveResult;
 
-  const errorEntryDraft: ErrorEntry = {
+  const errorEntryResult = safeParseOrFailure<ErrorEntry>(ErrorEntrySchema, {
     id: opts.errorEntryId,
     projectId: issueCard.projectId,
     sourceIssueId: issueCard.id,
@@ -236,36 +239,24 @@ export function buildCloseoutFromIssue(
     tags,
     relatedFiles,
     relatedCommits,
-    archiveFilePath: archiveParsed.data.filePath,
+    archiveFilePath: archiveResult.data.filePath,
     createdAt: opts.now,
     updatedAt: opts.now,
-  };
-  const errorEntryParsed = ErrorEntrySchema.safeParse(errorEntryDraft);
-  if (!errorEntryParsed.success) {
-    const first = errorEntryParsed.error.issues[0];
-    return first
-      ? failureFromIssue("errorEntry", first)
-      : { ok: false, reason: "errorEntry: schema validation failed" };
-  }
+  }, "errorEntry");
+  if (!errorEntryResult.ok) return errorEntryResult;
 
-  const updatedIssueCardDraft: IssueCard = {
+  const issueCardResult = safeParseOrFailure<IssueCard>(IssueCardSchema, {
     ...issueCard,
     status: "archived",
     updatedAt: opts.now,
-  };
-  const issueCardParsed = IssueCardSchema.safeParse(updatedIssueCardDraft);
-  if (!issueCardParsed.success) {
-    const first = issueCardParsed.error.issues[0];
-    return first
-      ? failureFromIssue("issueCard", first)
-      : { ok: false, reason: "issueCard: schema validation failed" };
-  }
+  }, "issueCard");
+  if (!issueCardResult.ok) return issueCardResult;
 
   return {
     ok: true,
-    archiveDocument: archiveParsed.data,
-    errorEntry: errorEntryParsed.data,
-    updatedIssueCard: issueCardParsed.data,
+    archiveDocument: archiveResult.data,
+    errorEntry: errorEntryResult.data,
+    updatedIssueCard: issueCardResult.data,
   };
 }
 

@@ -99,47 +99,38 @@ export interface RepairTask {
 
 type LoadIssueCardFailure = Extract<LoadIssueCardResult, { ok: false }>["error"];
 
-function labelStorageEntity(entity: StorageEntity): string {
-  const labels: Record<StorageEntity, string> = {
-    workspace: "项目/工作区",
-    issue_card: "问题卡",
-    investigation_record: "排查记录",
-    archive_document: "归档摘要",
-    error_entry: "错误表条目",
-    form_draft: "表单草稿",
-  };
-  return labels[entity];
-}
+const STORAGE_ENTITY_LABELS: Record<StorageEntity, string> = {
+  workspace: "项目/工作区",
+  issue_card: "问题卡",
+  investigation_record: "排查记录",
+  archive_document: "归档摘要",
+  error_entry: "错误表条目",
+  form_draft: "表单草稿",
+};
 
-function labelSurface(surface: StorageFeedbackSurface): string {
-  const labels: Record<StorageFeedbackSurface, string> = {
-    demo: "辅助验证",
-    server_connection: "服务器连接",
-    workspace_selector: "项目选择",
-    issue_intake: "创建问题卡",
-    issue_list: "问题卡列表",
-    issue_detail: "问题卡详情",
-    investigation_append: "追加排查记录",
-    investigation_list: "排查时间线",
-    closeout: "结案归档",
-    knowledge_search: "历史搜索",
-    archive_index: "归档区",
-  };
-  return labels[surface];
-}
+const SURFACE_LABELS: Record<StorageFeedbackSurface, string> = {
+  demo: "辅助验证",
+  server_connection: "服务器连接",
+  workspace_selector: "项目选择",
+  issue_intake: "创建问题卡",
+  issue_list: "问题卡列表",
+  issue_detail: "问题卡详情",
+  investigation_append: "追加排查记录",
+  investigation_list: "排查时间线",
+  closeout: "结案归档",
+  knowledge_search: "历史搜索",
+  archive_index: "归档区",
+};
 
-function labelCompletedWrite(entity: string): string {
-  switch (entity) {
-    case "archive_document":
-      return "归档摘要";
-    case "error_entry":
-      return "错误表条目";
-    case "issue_card":
-      return "问题卡";
-    default:
-      return entity;
-  }
-}
+const COMPLETED_WRITE_LABELS: Record<string, string> = {
+  archive_document: "归档摘要",
+  error_entry: "错误表条目",
+  issue_card: "问题卡",
+};
+
+const labelStorageEntity = (entity: StorageEntity): string => STORAGE_ENTITY_LABELS[entity];
+const labelSurface = (surface: StorageFeedbackSurface): string => SURFACE_LABELS[surface];
+const labelCompletedWrite = (entity: string): string => COMPLETED_WRITE_LABELS[entity] ?? entity;
 
 function uniqueAffectedEntities(entities: RepairTaskAffectedEntity[]): RepairTaskAffectedEntity[] {
   const seen = new Set<string>();
@@ -187,13 +178,13 @@ function createCloseoutRepairTask(failure: Extract<
     });
   }
 
+  const hasCompleted = failure.completedWrites.length > 0;
   return {
-    problemType: failure.completedWrites.length > 0 ? "partial_closeout_write_failure" : "closeout_write_blocked",
+    problemType: hasCompleted ? "partial_closeout_write_failure" : "closeout_write_blocked",
     affectedEntities: uniqueAffectedEntities(affectedEntities),
-    risk:
-      failure.completedWrites.length > 0
-        ? `结案流程已部分落库（已完成：${completedLabels}），问题卡、归档摘要与错误表可能处于不一致状态。`
-        : "结案写入被阻断；如果不审阅冲突目标就反复重试，可能掩盖已有归档或错误表状态。",
+    risk: hasCompleted
+      ? `结案流程已部分落库（已完成：${completedLabels}），问题卡、归档摘要与错误表可能处于不一致状态。`
+      : "结案写入被阻断；如果不审阅冲突目标就反复重试，可能掩盖已有归档或错误表状态。",
     suggestedRepairSteps: [
       "不要删除、覆盖或自动补写生产数据。",
       "先审阅受影响的问题卡、归档摘要和错误表条目，确认哪些实体已经落库。",
@@ -206,30 +197,15 @@ function createCloseoutRepairTask(failure: Extract<
   };
 }
 
-function connectionStateFromError(
-  connection?: StorageErrorConnection,
-): StorageConnectionState {
-  if (!connection) {
-    return LOCAL_STORAGE_CONNECTION_STATE;
-  }
+function connectionStateFromError(connection?: StorageErrorConnection): StorageConnectionState {
+  if (!connection) return LOCAL_STORAGE_CONNECTION_STATE;
   if (connection.state === "online") {
-    return {
-      state: "online",
-      checkedAt: connection.checkedAt,
-    };
+    return { state: "online", checkedAt: connection.checkedAt };
   }
-  if (connection.state === "unreachable") {
-    return {
-      state: "unreachable",
-      reason: connection.reason,
-      checkedAt: connection.checkedAt,
-    };
-  }
-  return {
-    state: "degraded",
-    reason: connection.reason,
-    checkedAt: connection.checkedAt,
-  };
+  const { state, reason, checkedAt } = connection;
+  return state === "unreachable"
+    ? { state: "unreachable", reason, checkedAt }
+    : { state: "degraded", reason, checkedAt };
 }
 
 export function describeStorageConnectionState(state: StorageConnectionState): string {
@@ -325,43 +301,33 @@ export function createTimeoutStorageFeedbackError(
   };
 }
 
-export function healthCheckErrorToFeedback(error: StorageReadError): StorageFeedbackError {
-  switch (error.code) {
-    case "server_unreachable":
-      return createServerUnreachableStorageFeedbackError(
-        "server_connection",
-        "health",
-        error.message,
-        error.connection?.checkedAt ?? new Date().toISOString(),
-      );
-    case "timeout":
-      return createTimeoutStorageFeedbackError(
-        "server_connection",
-        "health",
-        error.message,
-        error.connection?.checkedAt ?? new Date().toISOString(),
-      );
-    case "not_found":
-      return {
-        surface: "server_connection",
-        operation: "health",
-        code: "not_found",
-        message: "未找到服务器健康检查入口",
-        detail: error.message,
-        retryable: false,
-        connectionState: connectionStateFromError(error.connection),
-      };
-    case "read_failed":
-      return {
-        surface: "server_connection",
-        operation: "health",
-        code: "read_failed",
-        message: "服务器健康检查失败",
-        detail: error.message,
-        retryable: true,
-        connectionState: connectionStateFromError(error.connection),
-      };
+function transportReadErrorToFeedback(
+  surface: StorageFeedbackSurface,
+  operation: StorageFeedbackOperation,
+  error: StorageReadError,
+): StorageFeedbackError | null {
+  const checkedAt = error.connection?.checkedAt ?? new Date().toISOString();
+  if (error.code === "server_unreachable") {
+    return createServerUnreachableStorageFeedbackError(surface, operation, error.message, checkedAt);
   }
+  if (error.code === "timeout") {
+    return createTimeoutStorageFeedbackError(surface, operation, error.message, checkedAt);
+  }
+  return null;
+}
+
+export function healthCheckErrorToFeedback(error: StorageReadError): StorageFeedbackError {
+  const transport = transportReadErrorToFeedback("server_connection", "health", error);
+  if (transport) return transport;
+  const base = {
+    surface: "server_connection" as const,
+    operation: "health" as const,
+    detail: error.message,
+    connectionState: connectionStateFromError(error.connection),
+  };
+  return error.code === "not_found"
+    ? { ...base, code: "not_found", message: "未找到服务器健康检查入口", retryable: false }
+    : { ...base, code: "read_failed", message: "服务器健康检查失败", retryable: true };
 }
 
 export function storageReadErrorToFeedback(
@@ -369,44 +335,19 @@ export function storageReadErrorToFeedback(
   operation: StorageFeedbackOperation,
   error: StorageReadError,
 ): StorageFeedbackError {
-  switch (error.code) {
-    case "server_unreachable":
-      return createServerUnreachableStorageFeedbackError(
-        surface,
-        operation,
-        error.message,
-        error.connection?.checkedAt ?? new Date().toISOString(),
-      );
-    case "timeout":
-      return createTimeoutStorageFeedbackError(
-        surface,
-        operation,
-        error.message,
-        error.connection?.checkedAt ?? new Date().toISOString(),
-      );
-    case "not_found":
-      return {
-        surface,
-        operation,
-        code: "not_found",
-        message: `${labelStorageEntity(error.entity)}不存在`,
-        detail: error.message,
-        entity: error.entity,
-        retryable: false,
-        connectionState: connectionStateFromError(error.connection),
-      };
-    case "read_failed":
-      return {
-        surface,
-        operation,
-        code: "read_failed",
-        message: `${labelStorageEntity(error.entity)}读取失败`,
-        detail: error.message,
-        entity: error.entity,
-        retryable: true,
-        connectionState: connectionStateFromError(error.connection),
-      };
-  }
+  const transport = transportReadErrorToFeedback(surface, operation, error);
+  if (transport) return transport;
+  const entityLabel = labelStorageEntity(error.entity);
+  const base = {
+    surface,
+    operation,
+    detail: error.message,
+    entity: error.entity,
+    connectionState: connectionStateFromError(error.connection),
+  };
+  return error.code === "not_found"
+    ? { ...base, code: "not_found", message: `${entityLabel}不存在`, retryable: false }
+    : { ...base, code: "read_failed", message: `${entityLabel}读取失败`, retryable: true };
 }
 
 export function storageWriteErrorToFeedback(
@@ -414,66 +355,35 @@ export function storageWriteErrorToFeedback(
   operation: StorageFeedbackOperation,
   error: StorageWriteError,
 ): StorageFeedbackError {
+  if (error.code === "server_unreachable") {
+    return createServerUnreachableStorageFeedbackError(surface, operation, error.message, error.connection.checkedAt);
+  }
+  if (error.code === "timeout") {
+    return createTimeoutStorageFeedbackError(surface, operation, error.message, error.connection.checkedAt);
+  }
+  const entityLabel = labelStorageEntity(error.entity);
+  const base = {
+    surface,
+    operation,
+    entity: error.entity,
+    connectionState: connectionStateFromError(error.connection),
+  };
   switch (error.code) {
     case "validation_failed":
       return {
-        surface,
-        operation,
+        ...base,
         code: "validation_failed",
-        message: `${labelStorageEntity(error.entity)}写入前校验失败`,
+        message: `${entityLabel}写入前校验失败`,
         detail: error.issues.length > 0 ? `${error.issues.length} 个字段问题` : error.message,
-        entity: error.entity,
         retryable: false,
-        connectionState: connectionStateFromError(error.connection),
       };
-    case "server_unreachable":
-      return createServerUnreachableStorageFeedbackError(
-        surface,
-        operation,
-        error.message,
-        error.connection.checkedAt,
-      );
-    case "timeout":
-      return createTimeoutStorageFeedbackError(
-        surface,
-        operation,
-        error.message,
-        error.connection.checkedAt,
-      );
     case "conflict":
-      return {
-        surface,
-        operation,
-        code: "conflict",
-        message: `${labelStorageEntity(error.entity)}写入冲突`,
-        detail: error.message,
-        entity: error.entity,
-        retryable: false,
-        connectionState: connectionStateFromError(error.connection),
-      };
+      return { ...base, code: "conflict", message: `${entityLabel}写入冲突`, detail: error.message, retryable: false };
     case "not_found":
-      return {
-        surface,
-        operation,
-        code: "not_found",
-        message: `${labelStorageEntity(error.entity)}引用目标不存在`,
-        detail: error.message,
-        entity: error.entity,
-        retryable: false,
-        connectionState: connectionStateFromError(error.connection),
-      };
+      return { ...base, code: "not_found", message: `${entityLabel}引用目标不存在`, detail: error.message, retryable: false };
     case "serialize_failed":
     case "unexpected_write_error":
-      return {
-        surface,
-        operation,
-        code: "write_failed",
-        message: `${labelStorageEntity(error.entity)}写入失败`,
-        detail: error.message,
-        entity: error.entity,
-        retryable: true,
-        connectionState: connectionStateFromError(error.connection),
-      };
+      return { ...base, code: "write_failed", message: `${entityLabel}写入失败`, detail: error.message, retryable: true };
   }
 }
 

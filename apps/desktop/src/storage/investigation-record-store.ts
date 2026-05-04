@@ -1,5 +1,5 @@
 // apps/desktop/src/storage/investigation-record-store.ts
-// S2-A3：InvestigationRecord 本地存储。独立前缀 `repo-debug:investigation-record:<recordId>`，
+// S2-A3：InvestigationRecord 本地存储。独立前缀 `repo-debug:investigation-record:<recordId>`,
 // 与 `repo-debug:issue-card:` 完全隔离；list 通过 issueId 外键过滤。
 // 读盘必走 safeParse，JSON / schema 异常路由到结构化 invalid 桶。
 
@@ -8,13 +8,12 @@ import {
   InvestigationRecordSchema,
   type InvestigationRecord,
 } from "../domain/schemas/investigation-record.ts";
-import { persistValidatedEntity } from "./local-storage-store-helpers.ts";
-import { localStorageAdapter } from "./local-storage-adapter.ts";
 import {
-  createReadFailed,
-  type StorageReadError,
-  type StorageWriteResult,
-} from "./storage-result.ts";
+  ascByString,
+  listValidatedEntities,
+  persistValidatedEntity,
+} from "./local-storage-store-helpers.ts";
+import type { StorageReadError, StorageWriteResult } from "./storage-result.ts";
 
 const KEY_PREFIX = "repo-debug:investigation-record:";
 
@@ -28,13 +27,7 @@ export interface InvestigationRecordListResult {
   readError: StorageReadError | null;
 }
 
-function storageKey(id: string): string {
-  return KEY_PREFIX + id;
-}
-
-function idFromKey(key: string): string {
-  return key.startsWith(KEY_PREFIX) ? key.slice(KEY_PREFIX.length) : key;
-}
+const storageKey = (id: string): string => KEY_PREFIX + id;
 
 export function saveInvestigationRecord(record: InvestigationRecord): StorageWriteResult {
   return persistValidatedEntity({
@@ -49,61 +42,15 @@ export function saveInvestigationRecord(record: InvestigationRecord): StorageWri
 export function listInvestigationRecordsByIssueId(
   issueId: string,
 ): InvestigationRecordListResult {
-  const valid: InvestigationRecord[] = [];
-  const invalid: InvestigationRecordListInvalidEntry[] = [];
-  let keys: string[];
-  try {
-    keys = localStorageAdapter.listKeys(KEY_PREFIX);
-  } catch (error) {
-    return {
-      valid,
-      invalid,
-      readError: createReadFailed("investigation_record", KEY_PREFIX, error),
-    };
-  }
-
-  for (const key of keys) {
-    const id = idFromKey(key);
-    let raw: string | null;
-    try {
-      raw = localStorageAdapter.getItem(key);
-    } catch (error) {
-      return {
-        valid,
-        invalid,
-        readError: createReadFailed("investigation_record", key, error),
-      };
-    }
-    if (raw === null) continue;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (err) {
-      invalid.push({
-        kind: "parse_error",
-        key,
-        id,
-        message: err instanceof Error ? err.message : String(err),
-      });
-      continue;
-    }
-    const result = InvestigationRecordSchema.safeParse(parsed);
-    if (!result.success) {
-      invalid.push({
-        kind: "validation_error",
-        key,
-        id,
-        issues: result.error.issues,
-      });
-      continue;
-    }
-    if (result.data.issueId !== issueId) continue;
-    valid.push(result.data);
-  }
-
-  valid.sort((a, b) =>
-    a.createdAt < b.createdAt ? -1 : a.createdAt > b.createdAt ? 1 : 0,
-  );
-
-  return { valid, invalid, readError: null };
+  const result = listValidatedEntities<InvestigationRecord>({
+    entity: "investigation_record",
+    prefix: KEY_PREFIX,
+    schema: InvestigationRecordSchema,
+    filter: (record) => record.issueId === issueId,
+  });
+  return {
+    valid: [...result.valid].sort(ascByString<InvestigationRecord, "createdAt">("createdAt")),
+    invalid: result.invalid,
+    readError: result.readError,
+  };
 }

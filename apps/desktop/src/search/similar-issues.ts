@@ -173,21 +173,17 @@ function isHistoricalIssue(
 
 function buildReasons(match: Omit<SimilarIssueMatch, "reasons">): string[] {
   const reasons: string[] = [];
-  if (match.matchedTags.length > 0) {
-    reasons.push(`标签重合：${match.matchedTags.join("、")}`);
+  const labels: Array<[keyof typeof match, string]> = [
+    ["matchedTags", "标签重合"],
+    ["matchedKeywords", "关键词重合"],
+    ["matchedRootCauseTerms", "根因术语重合"],
+    ["matchedResolutionTerms", "处理方式术语重合"],
+  ];
+  for (const [key, prefix] of labels) {
+    const list = match[key] as string[];
+    if (list.length > 0) reasons.push(`${prefix}：${list.join("、")}`);
   }
-  if (match.matchedKeywords.length > 0) {
-    reasons.push(`关键词重合：${match.matchedKeywords.join("、")}`);
-  }
-  if (match.matchedRootCauseTerms.length > 0) {
-    reasons.push(`根因术语重合：${match.matchedRootCauseTerms.join("、")}`);
-  }
-  if (match.matchedResolutionTerms.length > 0) {
-    reasons.push(`处理方式术语重合：${match.matchedResolutionTerms.join("、")}`);
-  }
-  if (match.errorCode) {
-    reasons.push(`已有错误表：${match.errorCode}`);
-  }
+  if (match.errorCode) reasons.push(`已有错误表：${match.errorCode}`);
   return reasons;
 }
 

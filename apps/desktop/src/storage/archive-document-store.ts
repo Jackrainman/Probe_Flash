@@ -7,13 +7,14 @@ import {
   ArchiveDocumentSchema,
   type ArchiveDocument,
 } from "../domain/schemas/archive-document.ts";
-import { persistValidatedEntity } from "./local-storage-store-helpers.ts";
-import { localStorageAdapter } from "./local-storage-adapter.ts";
 import {
-  createReadFailed,
-  type StorageReadError,
-  type StorageWriteResult,
-} from "./storage-result.ts";
+  ascByString,
+  descByString,
+  listValidatedEntities,
+  loadValidatedEntity,
+  persistValidatedEntity,
+} from "./local-storage-store-helpers.ts";
+import type { StorageReadError, StorageWriteResult } from "./storage-result.ts";
 
 const KEY_PREFIX = "repo-debug:archive-document:";
 
@@ -37,13 +38,7 @@ export interface ArchiveDocumentListResult {
   readError: StorageReadError | null;
 }
 
-function storageKey(fileName: string): string {
-  return KEY_PREFIX + fileName;
-}
-
-function fileNameFromKey(key: string): string {
-  return key.startsWith(KEY_PREFIX) ? key.slice(KEY_PREFIX.length) : key;
-}
+const storageKey = (fileName: string): string => KEY_PREFIX + fileName;
 
 export function saveArchiveDocument(document: ArchiveDocument): StorageWriteResult {
   return persistValidatedEntity({
@@ -56,97 +51,26 @@ export function saveArchiveDocument(document: ArchiveDocument): StorageWriteResu
 }
 
 export function loadArchiveDocument(fileName: string): LoadArchiveDocumentResult {
-  let raw: string | null;
-  try {
-    raw = localStorageAdapter.getItem(storageKey(fileName));
-  } catch (error) {
-    return {
-      ok: false,
-      error: createReadFailed("archive_document", fileName, error),
-    };
-  }
-  if (raw === null) {
-    return { ok: false, error: { kind: "not_found", fileName } };
-  }
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(raw);
-  } catch (err) {
-    return {
-      ok: false,
-      error: {
-        kind: "parse_error",
-        fileName,
-        message: err instanceof Error ? err.message : String(err),
-      },
-    };
-  }
-  const result = ArchiveDocumentSchema.safeParse(parsed);
-  if (!result.success) {
-    return {
-      ok: false,
-      error: { kind: "validation_error", fileName, issues: result.error.issues },
-    };
-  }
-  return { ok: true, document: result.data };
+  const result = loadValidatedEntity<ArchiveDocument, "fileName">({
+    entity: "archive_document",
+    id: fileName,
+    idField: "fileName",
+    key: storageKey(fileName),
+    schema: ArchiveDocumentSchema,
+  });
+  return result.ok ? { ok: true, document: result.data } : { ok: false, error: result.error };
 }
 
 export function listArchiveDocuments(): ArchiveDocumentListResult {
-  const valid: ArchiveDocument[] = [];
-  const invalid: ArchiveDocumentListInvalidEntry[] = [];
-  let keys: string[];
-  try {
-    keys = localStorageAdapter.listKeys(KEY_PREFIX);
-  } catch (error) {
-    return {
-      valid,
-      invalid,
-      readError: createReadFailed("archive_document", KEY_PREFIX, error),
-    };
-  }
-
-  for (const key of keys) {
-    const fileName = fileNameFromKey(key);
-    let raw: string | null;
-    try {
-      raw = localStorageAdapter.getItem(key);
-    } catch (error) {
-      return {
-        valid,
-        invalid,
-        readError: createReadFailed("archive_document", key, error),
-      };
-    }
-    if (raw === null) continue;
-    let parsed: unknown;
-    try {
-      parsed = JSON.parse(raw);
-    } catch (err) {
-      invalid.push({
-        kind: "parse_error",
-        key,
-        fileName,
-        message: err instanceof Error ? err.message : String(err),
-      });
-      continue;
-    }
-    const result = ArchiveDocumentSchema.safeParse(parsed);
-    if (!result.success) {
-      invalid.push({
-        kind: "validation_error",
-        key,
-        fileName,
-        issues: result.error.issues,
-      });
-      continue;
-    }
-    valid.push(result.data);
-  }
-
-  valid.sort((a, b) =>
-    a.generatedAt < b.generatedAt ? 1 : a.generatedAt > b.generatedAt ? -1 : 0,
-  );
-  invalid.sort((a, b) => (a.fileName < b.fileName ? -1 : a.fileName > b.fileName ? 1 : 0));
-
-  return { valid, invalid, readError: null };
+  const result = listValidatedEntities<ArchiveDocument, "fileName">({
+    entity: "archive_document",
+    prefix: KEY_PREFIX,
+    schema: ArchiveDocumentSchema,
+    idField: "fileName",
+  });
+  return {
+    valid: [...result.valid].sort(descByString<ArchiveDocument, "generatedAt">("generatedAt")),
+    invalid: [...result.invalid].sort(ascByString<ArchiveDocumentListInvalidEntry, "fileName">("fileName")),
+    readError: result.readError,
+  };
 }

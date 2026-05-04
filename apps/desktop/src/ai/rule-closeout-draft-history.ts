@@ -52,6 +52,19 @@ export function closeoutDraftHistoryStorageKey(issueId: string): string {
   return `${CLOSEOUT_DRAFT_HISTORY_STORAGE_KEY_PREFIX}${encodeURIComponent(issueId)}`;
 }
 
+function withStorage<T>(
+  storage: CloseoutDraftHistoryStorage | null,
+  fn: (storage: CloseoutDraftHistoryStorage) => T,
+  fallback: T,
+): T {
+  if (storage === null) return fallback;
+  try {
+    return fn(storage);
+  } catch {
+    return fallback;
+  }
+}
+
 export function createCloseoutDraftHistoryEntry({
   issueId,
   issueTitle,
@@ -84,18 +97,14 @@ export function readCloseoutDraftHistory(
   storage: CloseoutDraftHistoryStorage | null,
   issueId: string,
 ): CloseoutDraftHistoryEntry[] {
-  if (storage === null) return [];
-  try {
-    const raw = storage.getItem(closeoutDraftHistoryStorageKey(issueId));
+  return withStorage(storage, (s) => {
+    const raw = s.getItem(closeoutDraftHistoryStorageKey(issueId));
     if (raw === null) return [];
     const parsed = CloseoutDraftHistorySchema.safeParse(JSON.parse(raw));
-    if (!parsed.success) return [];
-    return parsed.data
-      .filter((entry) => entry.issueId === issueId)
-      .slice(0, CLOSEOUT_DRAFT_HISTORY_LIMIT);
-  } catch {
-    return [];
-  }
+    return parsed.success
+      ? parsed.data.filter((entry) => entry.issueId === issueId).slice(0, CLOSEOUT_DRAFT_HISTORY_LIMIT)
+      : [];
+  }, []);
 }
 
 export function writeCloseoutDraftHistory(
@@ -103,18 +112,15 @@ export function writeCloseoutDraftHistory(
   issueId: string,
   entries: CloseoutDraftHistoryEntry[],
 ): boolean {
-  if (storage === null) return false;
   const scopedEntries = entries
     .filter((entry) => entry.issueId === issueId)
     .slice(0, CLOSEOUT_DRAFT_HISTORY_LIMIT);
   const parsed = CloseoutDraftHistorySchema.safeParse(scopedEntries);
   if (!parsed.success) return false;
-  try {
-    storage.setItem(closeoutDraftHistoryStorageKey(issueId), JSON.stringify(parsed.data));
+  return withStorage(storage, (s) => {
+    s.setItem(closeoutDraftHistoryStorageKey(issueId), JSON.stringify(parsed.data));
     return true;
-  } catch {
-    return false;
-  }
+  }, false);
 }
 
 export function appendCloseoutDraftHistoryEntry(
@@ -125,30 +131,24 @@ export function appendCloseoutDraftHistoryEntry(
     (previousEntry) => previousEntry.id !== entry.id,
   );
   const entries = [entry, ...previousEntries].slice(0, CLOSEOUT_DRAFT_HISTORY_LIMIT);
-  return {
-    entries,
-    persisted: writeCloseoutDraftHistory(storage, entry.issueId, entries),
-  };
+  return { entries, persisted: writeCloseoutDraftHistory(storage, entry.issueId, entries) };
 }
 
 export function clearCloseoutDraftHistory(
   storage: CloseoutDraftHistoryStorage | null,
   issueId: string,
 ): boolean {
-  if (storage === null) return false;
-  try {
-    storage.removeItem(closeoutDraftHistoryStorageKey(issueId));
+  return withStorage(storage, (s) => {
+    s.removeItem(closeoutDraftHistoryStorageKey(issueId));
     return true;
-  } catch {
-    return false;
-  }
+  }, false);
 }
 
+const CLOSEOUT_DRAFT_HISTORY_SOURCE_LABELS: Record<CloseoutDraftHistorySource, string> = {
+  "local-rule": "本地规则生成（未调用 AI）",
+  deepseek: "DeepSeek 生成（草稿，未自动写库）",
+};
+
 export function labelCloseoutDraftHistorySource(source: CloseoutDraftHistoryEntry["source"]): string {
-  switch (source) {
-    case "local-rule":
-      return "本地规则生成（未调用 AI）";
-    case "deepseek":
-      return "DeepSeek 生成（草稿，未自动写库）";
-  }
+  return CLOSEOUT_DRAFT_HISTORY_SOURCE_LABELS[source];
 }

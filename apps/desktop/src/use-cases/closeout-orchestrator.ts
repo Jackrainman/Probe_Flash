@@ -98,37 +98,36 @@ export interface CloseoutOrchestratorOptions {
   closeoutOptionsOverrides?: Partial<Omit<CloseoutOptions, "now">>;
 }
 
-function labelStorageEntity(entity: StorageEntity): string {
-  const labels: Record<StorageEntity, string> = {
-    workspace: "项目/工作区",
-    issue_card: "问题卡",
-    investigation_record: "排查记录",
-    archive_document: "归档摘要",
-    error_entry: "错误表条目",
-    form_draft: "表单草稿",
-  };
-  return labels[entity];
-}
+const STORAGE_ENTITY_LABELS: Record<StorageEntity, string> = {
+  workspace: "项目/工作区",
+  issue_card: "问题卡",
+  investigation_record: "排查记录",
+  archive_document: "归档摘要",
+  error_entry: "错误表条目",
+  form_draft: "表单草稿",
+};
+
+const labelStorageEntity = (entity: StorageEntity): string => STORAGE_ENTITY_LABELS[entity];
 
 function formatStorageWriteError(error: StorageWriteError): string {
-  const entityLabel = labelStorageEntity(error.entity);
+  const label = labelStorageEntity(error.entity);
   switch (error.code) {
     case "validation_failed":
       return error.issues.length > 0
-        ? `${entityLabel}写入前校验失败（${error.issues.length} 个字段问题）`
-        : `${entityLabel}写入前校验失败：${error.message}`;
+        ? `${label}写入前校验失败（${error.issues.length} 个字段问题）`
+        : `${label}写入前校验失败：${error.message}`;
     case "serialize_failed":
-      return `${entityLabel}序列化失败：${error.message}`;
+      return `${label}序列化失败：${error.message}`;
     case "unexpected_write_error":
-      return `${entityLabel}写入异常：${error.message}`;
+      return `${label}写入异常：${error.message}`;
     case "server_unreachable":
-      return `${entityLabel}写入失败：无法连接服务器长期存储（${error.message}）`;
+      return `${label}写入失败：无法连接服务器长期存储（${error.message}）`;
     case "timeout":
-      return `${entityLabel}写入超时：${error.message}`;
+      return `${label}写入超时：${error.message}`;
     case "conflict":
-      return `${entityLabel}写入冲突：${error.message}`;
+      return `${label}写入冲突：${error.message}`;
     case "not_found":
-      return `${entityLabel}写入目标不存在：${error.message}`;
+      return `${label}写入目标不存在：${error.message}`;
   }
 }
 
@@ -147,6 +146,12 @@ function formatLoadIssueCardError(
   }
 }
 
+const SAVE_FAILURE_PREFIX: Record<"archive_save_failed" | "error_entry_save_failed" | "issue_card_save_failed", string> = {
+  archive_save_failed: "归档摘要写入失败",
+  error_entry_save_failed: "错误表条目写入失败",
+  issue_card_save_failed: "问题卡回写失败",
+};
+
 export function formatCloseoutOrchestrationFailure(
   failure: CloseoutOrchestrationFailure,
 ): string {
@@ -160,11 +165,9 @@ export function formatCloseoutOrchestrationFailure(
     case "closeout_validation_failed":
       return failure.error.reason;
     case "archive_save_failed":
-      return `归档摘要写入失败：${formatStorageWriteError(failure.error)}`;
     case "error_entry_save_failed":
-      return `错误表条目写入失败：${formatStorageWriteError(failure.error)}`;
     case "issue_card_save_failed":
-      return `问题卡回写失败：${formatStorageWriteError(failure.error)}`;
+      return `${SAVE_FAILURE_PREFIX[failure.reason]}：${formatStorageWriteError(failure.error)}`;
   }
 }
 

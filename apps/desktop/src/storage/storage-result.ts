@@ -23,299 +23,176 @@ export interface StorageReadError {
   connection?: StorageErrorConnection;
 }
 
+type WriteErrorBase<Kind extends string> = {
+  kind: Kind;
+  code: Kind;
+  entity: StorageEntity;
+  target: string;
+  message: string;
+  connection?: StorageErrorConnection;
+};
+
 export type StorageWriteError =
-  | {
-      kind: "validation_failed";
-      code: "validation_failed";
-      entity: StorageEntity;
-      target: string;
-      message: string;
-      issues: ZodIssue[];
-      connection?: StorageErrorConnection;
-    }
-  | {
-      kind: "serialize_failed";
-      code: "serialize_failed";
-      entity: StorageEntity;
-      target: string;
-      message: string;
-      connection?: StorageErrorConnection;
-    }
-  | {
-      kind: "unexpected_write_error";
-      code: "unexpected_write_error";
-      entity: StorageEntity;
-      target: string;
-      message: string;
-      connection?: StorageErrorConnection;
-    }
-  | {
-      kind: "server_unreachable";
-      code: "server_unreachable";
-      entity: StorageEntity;
-      target: string;
-      message: string;
-      connection: StorageErrorConnection;
-    }
-  | {
-      kind: "timeout";
-      code: "timeout";
-      entity: StorageEntity;
-      target: string;
-      message: string;
-      connection: StorageErrorConnection;
-    }
-  | {
-      kind: "conflict";
-      code: "conflict";
-      entity: StorageEntity;
-      target: string;
-      message: string;
-      connection?: StorageErrorConnection;
-    }
-  | {
-      kind: "not_found";
-      code: "not_found";
-      entity: StorageEntity;
-      target: string;
-      message: string;
-      connection?: StorageErrorConnection;
-    };
+  | (WriteErrorBase<"validation_failed"> & { issues: ZodIssue[] })
+  | WriteErrorBase<"serialize_failed">
+  | WriteErrorBase<"unexpected_write_error">
+  | (WriteErrorBase<"server_unreachable"> & { connection: StorageErrorConnection })
+  | (WriteErrorBase<"timeout"> & { connection: StorageErrorConnection })
+  | WriteErrorBase<"conflict">
+  | WriteErrorBase<"not_found">;
 
 export type StorageWriteResult = { ok: true } | { ok: false; error: StorageWriteError };
 
 function normalizeErrorMessage(error: unknown, fallback: string): string {
-  if (error instanceof Error && error.message.trim().length > 0) {
-    return error.message;
-  }
-  if (typeof error === "string" && error.trim().length > 0) {
-    return error;
-  }
-  return fallback;
+  const candidate = error instanceof Error ? error.message : typeof error === "string" ? error : "";
+  return candidate.trim().length > 0 ? candidate : fallback;
 }
 
-export function createDegradedConnection(reason: string, checkedAt: string): StorageErrorConnection {
-  return {
-    state: "degraded",
-    reason,
-    checkedAt,
-  };
-}
+const connection = (
+  state: StorageErrorConnection["state"],
+  reason: string,
+  checkedAt: string,
+): StorageErrorConnection => ({ state, reason, checkedAt });
 
-export function createOnlineConnection(
+export const createDegradedConnection = (reason: string, checkedAt: string): StorageErrorConnection =>
+  connection("degraded", reason, checkedAt);
+
+export const createOnlineConnection = (
   checkedAt: string,
   reason = "server storage responded without localStorage fallback",
-): StorageErrorConnection {
-  return {
-    state: "online",
-    reason,
-    checkedAt,
-  };
-}
+): StorageErrorConnection => connection("online", reason, checkedAt);
 
-export function createUnreachableConnection(
+export const createUnreachableConnection = (
   reason: string,
   checkedAt: string,
-): StorageErrorConnection {
-  return {
-    state: "unreachable",
-    reason,
-    checkedAt,
-  };
-}
+): StorageErrorConnection => connection("unreachable", reason, checkedAt);
 
-export function createReadFailed(
-  entity: StorageEntity,
-  target: string,
-  error: unknown,
-  connection?: StorageErrorConnection,
-): StorageReadError {
-  return {
-    kind: "read_failed",
-    code: "read_failed",
-    entity,
-    target,
-    message: normalizeErrorMessage(error, `${entity} read failed`),
-    connection,
-  };
-}
-
-export function createServerUnreachableReadError(
-  entity: StorageEntity,
-  target: string,
-  reason: string,
-  checkedAt: string,
-): StorageReadError {
-  return {
-    kind: "read_failed",
-    code: "server_unreachable",
-    entity,
-    target,
-    message: reason,
-    connection: createUnreachableConnection(reason, checkedAt),
-  };
-}
-
-export function createTimeoutReadError(
-  entity: StorageEntity,
-  target: string,
-  reason: string,
-  checkedAt: string,
-): StorageReadError {
-  return {
-    kind: "read_failed",
-    code: "timeout",
-    entity,
-    target,
-    message: reason,
-    connection: createDegradedConnection(reason, checkedAt),
-  };
-}
-
-export function createNotFoundReadError(
-  entity: StorageEntity,
-  target: string,
-  reason: string,
-  connection?: StorageErrorConnection,
-): StorageReadError {
-  return {
-    kind: "read_failed",
-    code: "not_found",
-    entity,
-    target,
-    message: reason,
-    connection,
-  };
-}
-
-export function createValidationFailed(
-  entity: StorageEntity,
-  target: string,
-  issues: ZodIssue[],
-  connection?: StorageErrorConnection,
-): StorageWriteError {
-  return {
-    kind: "validation_failed",
-    code: "validation_failed",
-    entity,
-    target,
-    message: `${entity} schema validation failed before write`,
-    issues,
-    connection,
-  };
-}
-
-export function createRemoteValidationFailed(
+const readError = (
+  code: StorageReadError["code"],
   entity: StorageEntity,
   target: string,
   message: string,
   connection?: StorageErrorConnection,
-): StorageWriteError {
-  return {
-    kind: "validation_failed",
-    code: "validation_failed",
-    entity,
-    target,
-    message: normalizeErrorMessage(message, `${entity} remote validation failed`),
-    issues: [],
-    connection,
-  };
-}
+): StorageReadError => ({ kind: "read_failed", code, entity, target, message, connection });
 
-export function createSerializeFailed(
-  entity: StorageEntity,
-  target: string,
-  error: unknown,
-): StorageWriteError {
-  return {
-    kind: "serialize_failed",
-    code: "serialize_failed",
-    entity,
-    target,
-    message: normalizeErrorMessage(error, `${entity} serialization failed`),
-  };
-}
-
-export function createUnexpectedWriteError(
+export const createReadFailed = (
   entity: StorageEntity,
   target: string,
   error: unknown,
   connection?: StorageErrorConnection,
-): StorageWriteError {
-  return {
-    kind: "unexpected_write_error",
-    code: "unexpected_write_error",
-    entity,
-    target,
-    message: normalizeErrorMessage(error, `${entity} write failed`),
-    connection,
-  };
-}
+): StorageReadError =>
+  readError("read_failed", entity, target, normalizeErrorMessage(error, `${entity} read failed`), connection);
 
-export function createServerUnreachableWriteError(
+export const createServerUnreachableReadError = (
   entity: StorageEntity,
   target: string,
   reason: string,
   checkedAt: string,
-): StorageWriteError {
-  return {
-    kind: "server_unreachable",
-    code: "server_unreachable",
-    entity,
-    target,
-    message: reason,
-    connection: createUnreachableConnection(reason, checkedAt),
-  };
-}
+): StorageReadError =>
+  readError("server_unreachable", entity, target, reason, createUnreachableConnection(reason, checkedAt));
 
-export function createTimeoutWriteError(
+export const createTimeoutReadError = (
   entity: StorageEntity,
   target: string,
   reason: string,
   checkedAt: string,
-): StorageWriteError {
-  return {
-    kind: "timeout",
-    code: "timeout",
-    entity,
-    target,
-    message: reason,
-    connection: createDegradedConnection(reason, checkedAt),
-  };
-}
+): StorageReadError =>
+  readError("timeout", entity, target, reason, createDegradedConnection(reason, checkedAt));
 
-export function createConflictWriteError(
+export const createNotFoundReadError = (
   entity: StorageEntity,
   target: string,
   reason: string,
   connection?: StorageErrorConnection,
-): StorageWriteError {
-  return {
-    kind: "conflict",
-    code: "conflict",
+): StorageReadError => readError("not_found", entity, target, reason, connection);
+
+const writeError = <K extends StorageWriteError["kind"]>(
+  kind: K,
+  entity: StorageEntity,
+  target: string,
+  message: string,
+  connection?: StorageErrorConnection,
+): WriteErrorBase<K> => ({ kind, code: kind, entity, target, message, connection });
+
+export const createValidationFailed = (
+  entity: StorageEntity,
+  target: string,
+  issues: ZodIssue[],
+  connection?: StorageErrorConnection,
+): StorageWriteError => ({
+  ...writeError("validation_failed", entity, target, `${entity} schema validation failed before write`, connection),
+  issues,
+});
+
+export const createRemoteValidationFailed = (
+  entity: StorageEntity,
+  target: string,
+  message: string,
+  connection?: StorageErrorConnection,
+): StorageWriteError => ({
+  ...writeError(
+    "validation_failed",
     entity,
     target,
-    message: reason,
+    normalizeErrorMessage(message, `${entity} remote validation failed`),
     connection,
-  };
-}
+  ),
+  issues: [],
+});
 
-export function createNotFoundWriteError(
+export const createSerializeFailed = (
+  entity: StorageEntity,
+  target: string,
+  error: unknown,
+): StorageWriteError =>
+  writeError("serialize_failed", entity, target, normalizeErrorMessage(error, `${entity} serialization failed`));
+
+export const createUnexpectedWriteError = (
+  entity: StorageEntity,
+  target: string,
+  error: unknown,
+  connection?: StorageErrorConnection,
+): StorageWriteError =>
+  writeError(
+    "unexpected_write_error",
+    entity,
+    target,
+    normalizeErrorMessage(error, `${entity} write failed`),
+    connection,
+  );
+
+export const createServerUnreachableWriteError = (
+  entity: StorageEntity,
+  target: string,
+  reason: string,
+  checkedAt: string,
+): StorageWriteError => ({
+  ...writeError("server_unreachable", entity, target, reason),
+  connection: createUnreachableConnection(reason, checkedAt),
+});
+
+export const createTimeoutWriteError = (
+  entity: StorageEntity,
+  target: string,
+  reason: string,
+  checkedAt: string,
+): StorageWriteError => ({
+  ...writeError("timeout", entity, target, reason),
+  connection: createDegradedConnection(reason, checkedAt),
+});
+
+export const createConflictWriteError = (
   entity: StorageEntity,
   target: string,
   reason: string,
   connection?: StorageErrorConnection,
-): StorageWriteError {
-  return {
-    kind: "not_found",
-    code: "not_found",
-    entity,
-    target,
-    message: reason,
-    connection,
-  };
-}
+): StorageWriteError => writeError("conflict", entity, target, reason, connection);
 
-export function storageWriteOk(): StorageWriteResult {
-  return { ok: true };
-}
+export const createNotFoundWriteError = (
+  entity: StorageEntity,
+  target: string,
+  reason: string,
+  connection?: StorageErrorConnection,
+): StorageWriteError => writeError("not_found", entity, target, reason, connection);
+
+export const storageWriteOk = (): StorageWriteResult => ({ ok: true });
