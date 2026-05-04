@@ -2,6 +2,10 @@ import { existsSync, readFileSync } from "node:fs";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
+import { createReporter } from "./verify-helpers.mjs";
+
+const { fail } = createReporter("S3-SERVER-DEPLOY-PREP verify");
+
 const serverRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 const deployRoot = resolve(serverRoot, "deploy");
 
@@ -12,14 +16,6 @@ const requiredFiles = [
   "env.example",
   "probeflash.service.template",
 ];
-
-function fail(reason, detail) {
-  console.error(`[S3-SERVER-DEPLOY-PREP verify] FAIL: ${reason}`);
-  if (detail !== undefined) {
-    console.error(JSON.stringify(detail, null, 2));
-  }
-  process.exit(1);
-}
 
 function readDeployFile(fileName) {
   const filePath = resolve(deployRoot, fileName);

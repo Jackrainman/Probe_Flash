@@ -8,72 +8,102 @@
 3. 夜跑只能从 night-safe 池认领；命中 SSH/sudo/systemd/真实数据/真实服务器/API key 立即停。
 4. blocked / decision-needed 任务不自动认领。
 
-## 近期 P0（部署可用 + 数据安全 + 可观测）
-- DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY · current · day-only
-- DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY · pending · day-only · 依赖 DATA-01
-- DATA-02-JSON-EXPORT-HARDEN · night-safe · P0
-- DEP-09-LOGS-DIAGNOSTICS-BUNDLE · night-safe · P1
+## P0 — 技术债地基（夜跑纯还债 · night-safe）
 
-## UI gate 链（必须停在人工 review）
-- UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW · manual-review · day-only · 等用户人工检查桌面/移动端观感后才允许下一轮 UI polish
+| 任务 | 状态 | 依赖 | 具体内容 |
+|------|------|------|----------|
+| TECH-05-VERIFY-TMP-CLEANUP | current | TECH-04（done） | 把还在直接 `mkdtempSync(tmpdir(), ...)` 的 verify 脚本迁到 `verify-helpers.createTempDir/createTempDb`，让 exit 自动清理 |
+| TECH-06-SMOKE-FIXTURE-CONSOLIDATION | pending | TECH-05 | inline fixture 集中到 `apps/desktop/scripts/fixtures/`；合并 `search-verify-fixtures.mts` |
+| TECH-01-CLOSEOUT-ATOMICITY-DESIGN | pending | — | closeout 写 ErrorEntry + ArchiveDocument 包 `BEGIN/COMMIT/ROLLBACK`；加 `closeout_state` 标记位 |
+| TECH-02-CLOSEOUT-ATOMICITY-RECOVERY | pending | TECH-01 | 启动扫 `closeout_state = pending`；提供完成/回滚入口；前端提示 |
+| TECH-08-HTTP-REPOSITORY-SPLIT | pending | — | 从 `server.mjs` 抽 `store.*` 调用成独立 Repository 层；按 entity 分文件 |
+| TECH-09-SERVER-ROUTE-SPLIT | pending | TECH-08 | 20+ 路由按 entity 拆文件；`server.mjs` 从 509 行瘦到 ~80 行 |
+| TECH-10-DATABASE-MODULE-SPLIT | pending | — | 1220 行 `database.mjs` 按 entity 拆分；主文件变协调器 |
+| TECH-03-WORKSPACEID-CONSISTENCY-LATER | pending | — | review 所有查询是否过滤 `workspace_id`；补测试；最低优先级 |
 
-## Night-safe pool（可夜跑）
-- AIREADY-02-PROMPT-SCHEMA-VERSIONING · P1
-- AIREADY-03-GOLDEN-DRAFT-FIXTURES · P1
-- AIREADY-06-DRAFT-DIFF · P1
-- AIREADY-07-APPLY-SAFETY · P1
-- AIREADY-08-MOCK-PROVIDER · P1
-- AIREADY-09-NO-API-KEY-UX · P1
-- AIREADY-10-PROMPT-PREVIEW-EXPORT · P1
-- CODECTX-01-BUNDLE-CLI · P1
-- CODECTX-02-SECRETS-PROTECTION · P1
-- CODECTX-03-BUNDLE-SCHEMA-FIXTURES · P1
-- CODECTX-04-ATTACH-BUNDLE-TO-ISSUE · P1
-- CODECTX-05-BUNDLE-VIEWER · P1
-- CODECTX-06-BUNDLE-SIZE-ERROR-HANDLING · P1
-- CORE-07-ARCHIVE-FILTERS · P1
-- CORE-08-ERROR-ENTRY-TAGS · P1
-- CORE-09-DEMO-SEED-IMPORT · P2
-- TECH-01-CLOSEOUT-ATOMICITY-DESIGN · P2
-- TECH-02-CLOSEOUT-ATOMICITY-RECOVERY · P2
-- TECH-03-WORKSPACEID-CONSISTENCY-LATER · P2
-- TECH-04-VERIFY-HELPERS · P2
-- TECH-05-VERIFY-TMP-CLEANUP · P2
-- TECH-06-SMOKE-FIXTURE-CONSOLIDATION · P2
-- TECH-08-HTTP-REPOSITORY-SPLIT · P2
-- TECH-09-SERVER-ROUTE-SPLIT · P2
-- TECH-10-DATABASE-MODULE-SPLIT · P2
+**可并行组：**
+- Group A（infra 串行）：TECH-04（done） → TECH-05 → TECH-06
+- Group B（closeout 串行）：TECH-01 → TECH-02
+- Group C（HTTP arch 串行）：TECH-08 → TECH-09
+- Group D（独立并行）：TECH-10（DB 拆分，与 Group C 不冲突）
+- 扫尾：TECH-03
 
-## Day-only / 需要用户在线
-- DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY（同近期 P0）
-- DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY（同近期 P0）
-- UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW（同 UI gate 链）
+夜跑跳过被阻塞的（没依赖前任务的）先做有依赖已完成或没依赖的。
+
+## P1 — AI 草稿流准备（白天主线 · night-safe）
+
+- AIREADY-02-PROMPT-SCHEMA-VERSIONING · P1 · 当前 prompt 升级后旧草稿自动兼容
+- AIREADY-08-MOCK-PROVIDER · P1 · 不依赖真实 API 的开发调试工具，mock 响应
+- AIREADY-03-GOLDEN-DRAFT-FIXTURES · P1 · 给典型 IssueCard/Record 预埋高质量 AI 草稿示例
+- AIREADY-06-DRAFT-DIFF · P1 · 对比新旧草稿差异，辅助决定是否采纳
+- AIREADY-07-APPLY-SAFETY · P1 · AI 输出内容保存前做 schema 校验，防脏数据
+- AIREADY-09-NO-API-KEY-UX · P1 · 有 key 引导、无 key 接本地规则降级
+- AIREADY-10-PROMPT-PREVIEW-EXPORT · P1 · 导出 prompt 模板供手动调试
+- CODECTX-01-BUNDLE-CLI · P1 · 命令行打包指定代码文件为 JSON（不依赖 AI，可并行）
+
+## P2 — 真实 AI 辅助（AIREADY 完成后 · day-only）
+
+- REALAI-09-REAL-PROVIDER-OPT-IN-SMOKE · pending · day-only · 等用户 source env + AIREADY P1 完成
+- REALAI-05-SUMMARIZE-RECORDS · pending · day-only · 依赖 REALAI-09
+- REALAI-06-SUGGEST-PREVENTION · pending · day-only · 同上
+- REALAI-07-USER-REVIEW-BEFORE-APPLY · pending · day-only · 同上
+- REALAI-08-AI-DRAFT-AUDIT-METADATA · pending · day-only · 同上
+
+## P3 — 代码上下文分析（REALAI 完成后）
+
+- CODECTX-02-SECRETS-PROTECTION · P3 · night-safe · 打包时自动排除 `.env`、key 文件
+- CODECTX-03-BUNDLE-SCHEMA-FIXTURES · P3 · night-safe · bundle 结构测试用例
+- CODECTX-04-ATTACH-BUNDLE-TO-ISSUE · P3 · night-safe · UI 中关联/查看 bundle
+- CODECTX-05-BUNDLE-VIEWER · P3 · night-safe · 页面内查看已打包代码内容
+- CODECTX-06-BUNDLE-SIZE-ERROR-HANDLING · P3 · night-safe · 超阈值时提示精简或分批
+
+## P4 — 核心调试流程（插空做）
+
+- UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW · manual-review · day-only · 等用户人工检查桌面/移动端观感
+- CORE-07-ARCHIVE-FILTERS · P4 · night-safe · 按时间/标签/状态筛选归档
+- CORE-08-ERROR-ENTRY-TAGS · P4 · night-safe · ErrorEntry 加自定义标签（可顺便做 tag manager）
+- CORE-09-DEMO-SEED-IMPORT · P4 · night-safe · 一键导入示例 IssueCard/Record
+
+## P5 — 搜索与知识库（插空做）
+
+- SEARCH-06-TAG-HYGIENE-MERGE · P5 · night-safe · 最小方案：list API + merge API；后续 AI 辅助归并建议
+
+## P6 — 数据安全（推后）
+
+- DATA-01-SQLITE-BACKUP-SERVER-PATH-VERIFY · low-priority · day-only
+- DATA-03-RESTORE-DRY-RUN-SERVER-PATH-VERIFY · low-priority · day-only · 依赖 DATA-01
+- DATA-02-JSON-EXPORT-HARDEN · low-priority · night-safe
+- DEP-09-LOGS-DIAGNOSTICS-BUNDLE · low-priority · night-safe
+
+## P7 — 部署与运维（已稳定）
+
+- DEP-08-RELEASE-UPDATE-ROLLBACK-VERIFY · blocked · 等真实服务器测试 release
 
 ## Blocked by external
+
+- REALAI-05~09 全部 REALAI 任务 · 等用户 source DeepSeek env + AIREADY P1 完成
+- CODECTX-07-AI-ANALYZE-EXPLICIT-BUNDLE · 等 REALAI 通路 + bundle CLI
 - DEP-08-RELEASE-UPDATE-ROLLBACK-VERIFY · 等真实服务器测试 release
-- REALAI-05-SUMMARIZE-RECORDS · 等 REALAI-09 真实 key smoke
-- REALAI-06-SUGGEST-PREVENTION · 同上
-- REALAI-07-USER-REVIEW-BEFORE-APPLY · 同上
-- REALAI-08-AI-DRAFT-AUDIT-METADATA · 同上
-- REALAI-09-REAL-PROVIDER-OPT-IN-SMOKE · 等用户本地 source DeepSeek env
-- CODECTX-07-AI-ANALYZE-EXPLICIT-BUNDLE · 等真实 AI 通路 + bundle CLI
 
 ## Decision-needed
+
 - DATA-06-BACKUP-RETENTION-POLICY · 备份保留策略
 - DATA-07-RESTORE-APPLY-RUNBOOK · 真实恢复人工 runbook
-- SEARCH-05-ERROR-CODE-TAXONOMY · 错误码分类法
-- SEARCH-06-TAG-HYGIENE-MERGE · 标签合并/治理
-- CODECTX-08-REPO-CONNECTOR-LATER-ALLOWLIST · repo connector allowlist
-- CODECTX-09-CONNECTOR-AUDIT-DENYLIST · connector audit denylist
+- SEARCH-05-ERROR-CODE-TAXONOMY · 错误码分类法（Tag 方案够用可跳过）
 - 长期：权限系统、多队伍协作、RAG/embedding、硬件日志自动接入
 
 ## Post-0.3 / Hermes registry（不进入当前窗口）
+
 - AI-DRAFT-DEEPSEEK-SCHEMA-GUARD · P1 · DeepSeek closeout draft schema guard + mismatch fallback verify
-- HERMES-EXPERIMENT-BOOTSTRAP · P2 · `experiment/hermes-post-0.3` 实验接管说明与边界登记
+- HERMES-EXPERIMENT-BOOTSTRAP · P2 · `experiment/hermes-post-0.3` 实验接管说明与边界登记（搁置）
 
 ## 当前不做
+
 - 不在 UI-GATE-06 通过前执行下一轮 UI polish。
 - 不把 AI-ready 当真实 AI 已接入；不把规划写成完成。
 - 不做 RAG / embedding / 权限系统 / 多租户 / Electron / preload / fs / IPC。
 - 不让 server 默认扫仓库；不读密钥文件。
 - 不在夜跑模式执行真实服务器、SSH、sudo、systemd、API key、外部账号或删除/迁移真实数据任务。
+- 不执行 CODECTX-08/09（repo connector 白/黑名单——当前无自动扫描功能，已删除）。
+
+(End of file - total 90 lines)

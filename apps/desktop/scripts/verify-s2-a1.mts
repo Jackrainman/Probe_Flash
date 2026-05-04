@@ -8,6 +8,10 @@
 // 运行方式：
 //   cd apps/desktop && node --experimental-strip-types scripts/verify-s2-a1.mts
 
+import { createReporter } from "./verify-helpers.mts";
+
+const { fail } = createReporter("S2-A1 verify");
+
 interface LocalStorageShape {
   getItem(key: string): string | null;
   setItem(key: string, value: string): void;
@@ -50,12 +54,6 @@ const { buildIssueCardFromIntake, defaultIntakeOptions } = await import(
 const { saveIssueCard, loadIssueCard } = await import(
   "../src/storage/issue-card-store.ts"
 );
-
-function fail(reason: string, detail?: unknown): never {
-  console.error(`[S2-A1 verify] FAIL: ${reason}`);
-  if (detail !== undefined) console.error(JSON.stringify(detail, null, 2));
-  process.exit(1);
-}
 
 // --- Case 1: minimal valid intake builds a schema-valid IssueCard ---
 const FIXED_NOW = "2026-04-21T03:15:00+08:00";

@@ -1,5 +1,3 @@
-import { mkdtempSync } from "node:fs";
-import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { startProbeFlashServer } from "../../server/src/server.mjs";
@@ -11,23 +9,12 @@ import {
 import { createHttpStorageRepository } from "../src/storage/http-storage-repository.ts";
 import type { StorageRepository, StorageSearchResult } from "../src/storage/storage-repository.ts";
 import { orchestrateIssueCloseout } from "../src/use-cases/closeout-orchestrator.ts";
+import { createReporter, createTempDir } from "./verify-helpers.mts";
 
 const WORKSPACE_ID = "workspace-26-r1";
 const NOW = "2026-04-27T18:15:00+08:00";
 
-function fail(reason: string, detail?: unknown): never {
-  console.error(`[SEARCH-BASIC-FULL-TEXT desktop verify] FAIL: ${reason}`);
-  if (detail !== undefined) {
-    console.error(JSON.stringify(detail, null, 2));
-  }
-  throw new Error(reason);
-}
-
-function assert(condition: unknown, reason: string, detail?: unknown): asserts condition {
-  if (!condition) {
-    fail(reason, detail);
-  }
-}
+const { fail, assert } = createReporter("SEARCH-BASIC-FULL-TEXT desktop verify");
 
 function buildIssue(workspaceId: string, id: string, title: string, description: string) {
   const result = buildIssueCardFromIntake(
@@ -101,7 +88,7 @@ function hasKind(result: StorageSearchResult, kind: string, text: string): boole
   );
 }
 
-const workdir = mkdtempSync(join(tmpdir(), "probeflash-search-basic-desktop-"));
+const workdir = createTempDir("probeflash-search-basic-desktop").path;
 const dbPath = join(workdir, "probeflash.search.sqlite");
 const server = await startProbeFlashServer({ host: "127.0.0.1", port: 0, dbPath });
 

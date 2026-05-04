@@ -23,13 +23,10 @@
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
 
-const NOW_PATH = resolve(process.cwd(), "..", "..", "docs", "planning", "now.md");
+import { createReporter } from "./verify-helpers.mts";
 
-function fail(reason: string, detail?: unknown): never {
-  console.error(`[verify-now-yaml] FAIL: ${reason}`);
-  if (detail !== undefined) console.error(JSON.stringify(detail, null, 2));
-  process.exit(1);
-}
+const { fail } = createReporter("verify-now-yaml");
+const NOW_PATH = resolve(process.cwd(), "..", "..", "docs", "planning", "now.md");
 
 let raw: string;
 try {
