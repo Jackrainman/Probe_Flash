@@ -147,3 +147,12 @@
   - 浏览器人工冒烟（涉及 UI 行为变化时；不改代码时可仅标注未执行）。
 - **文档/规划类任务专用最小验证**：路径存在、内容可读、引用一致、planning sync 边界符合 §7 / §14、`JSON.parse` 通过、`git diff --check` 通过；typecheck 与 build 仍建议跑以避免误伤。
 - 未跑的必跑项必须在 commit message 或 handoff 中如实标注原因，不得静默跳过。
+
+## 17. Skills Mirror Rule（项目级 Skills 同步规则）
+- 项目 skill 的**唯一权威源**是 `.agents/skills/<name>/SKILL.md`，由 Codex / OpenCode / Claude Code 三方共用读取。
+- `.claude/skills/` 是 **Claude Code 读取镜像**，由 `.agents/hooks/sync-skills.sh`（PostToolUse hook）在 Claude Code 用 Edit / Write 工具写入 `.agents/skills/**` 时自动复制；**禁止手动编辑 `.claude/skills/`**，下次 hook 触发会覆盖你的修改或制造漂移。
+- 新增 skill 流程：在 `.agents/skills/<new-name>/SKILL.md` 创建文件即可；hook 自动镜像。**若用编辑器或 shell 命令（非 Edit / Write 工具）创建**，hook 不会触发，需要手动跑一次 `cp -rp .agents/skills/. .claude/skills/`。
+- 删除 skill 流程：删 `.agents/skills/<name>/` 后，必须**手动**同步 `rm -rf .claude/skills/<name>`；hook 只复制不删。
+- 漂移哨兵：`apps/desktop` 的 `npm run verify:skills-sync`（也含在 `verify:all` 里）会跑 `.agents/scripts/verify-skills-sync.sh`，对比两边目录；不一致直接 exit 非零并提示修复命令。
+- hook 失败日志：`.agents/hooks/sync-skills.log`（被 .gitignore 的 `.claude/` 不影响这里）；定期或验证失败时查看。
+- sandbox 备注：Claude Code 内置 sandbox `denyWithinAllow` 锁住 `.claude/skills/` 子树，Claude 永远不能直接写镜像目录；这条规则是设计上必要的隔离，不要绕过。镜像由 hook 在沙箱外完成。
