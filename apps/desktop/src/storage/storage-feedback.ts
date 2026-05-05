@@ -56,7 +56,9 @@ export type StorageFeedbackOperation =
   | "list_records"
   | "closeout"
   | "search"
-  | "list_archives";
+  | "list_archives"
+  | "list_closeout_recovery"
+  | "clear_closeout_recovery";
 
 export type StorageFeedbackCode =
   | "validation_failed"

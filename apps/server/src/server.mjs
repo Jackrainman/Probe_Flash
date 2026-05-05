@@ -267,6 +267,12 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
     const errorEntryDetailMatch = url.pathname.match(
       /^\/api\/workspaces\/([^/]+)\/error-entries\/([^/]+)$/,
     );
+    const closeoutRecoveryListMatch = url.pathname.match(
+      /^\/api\/workspaces\/([^/]+)\/closeout-recovery$/,
+    );
+    const closeoutRecoveryClearMatch = url.pathname.match(
+      /^\/api\/workspaces\/([^/]+)\/closeout-recovery\/([^/]+)\/clear$/,
+    );
     const formDraftDetailMatch = url.pathname.match(
       /^\/api\/workspaces\/([^/]+)\/form-drafts\/([^/]+)\/([^/]+)$/,
     );
@@ -422,6 +428,22 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
         return ok(res, store.getErrorEntry(param(errorEntryDetailMatch, 1), param(errorEntryDetailMatch, 2)));
       }
 
+      if (closeoutRecoveryListMatch && method === "GET") {
+        return ok(res, {
+          items: store.listCloseoutRecovery(param(closeoutRecoveryListMatch, 1)),
+        });
+      }
+
+      if (closeoutRecoveryClearMatch && method === "POST") {
+        return ok(
+          res,
+          store.clearCloseoutState(
+            param(closeoutRecoveryClearMatch, 1),
+            param(closeoutRecoveryClearMatch, 2),
+          ),
+        );
+      }
+
       if (formDraftDetailMatch && method === "GET") {
         return ok(res, {
           draft: store.getFormDraft(param(formDraftDetailMatch, 1), param(formDraftDetailMatch, 2), param(formDraftDetailMatch, 3)),
@@ -468,11 +490,51 @@ export async function startProbeFlashServer(overrides = {}) {
   const { dbPath, host, port, defaultWorkspace, logDir, staticDir, releaseMetadata } = getConfig(overrides);
   let store = null;
   let storeInitError = null;
+  let closeoutRecoveryScanResult = { ok: false, items: [], error: null };
 
   try {
     store = createProbeFlashDatabase(dbPath, { defaultWorkspace });
   } catch (error) {
     storeInitError = error instanceof Error ? error : new Error(String(error));
+  }
+
+  // TECH-02: startup-time closeout recovery scan. Pure read; no side-effects on the
+  // data layer. Operators see the count + summary right after boot so partial closeouts
+  // never silently linger; the GET /closeout-recovery API exposes the full list to the
+  // desktop UI which decides how to surface them. Suppressed in test runs by passing
+  // overrides.suppressCloseoutRecoveryLog = true.
+  if (store) {
+    try {
+      const items = store.listCloseoutRecovery(defaultWorkspace.id);
+      closeoutRecoveryScanResult = { ok: true, items, error: null };
+      if (!overrides.suppressCloseoutRecoveryLog) {
+        if (items.length === 0) {
+          console.log(
+            `[probeflash-server] closeout recovery scan: workspace=${defaultWorkspace.id} no pending or failed closeouts`,
+          );
+        } else {
+          console.log(
+            `[probeflash-server] closeout recovery scan: workspace=${defaultWorkspace.id} found ${items.length} issue(s) needing review`,
+          );
+          for (const item of items) {
+            console.log(
+              `[probeflash-server]   - issue=${item.id} closeoutState=${item.closeoutState} status=${item.status} updatedAt=${item.updatedAt}`,
+            );
+          }
+        }
+      }
+    } catch (error) {
+      closeoutRecoveryScanResult = {
+        ok: false,
+        items: [],
+        error: error instanceof Error ? error.message : String(error),
+      };
+      if (!overrides.suppressCloseoutRecoveryLog) {
+        console.warn(
+          `[probeflash-server] closeout recovery scan failed: ${closeoutRecoveryScanResult.error}`,
+        );
+      }
+    }
   }
 
   const server = createServer(createRequestHandler({ store, storeInitError, staticDir, releaseMetadata }));
@@ -501,6 +563,7 @@ export async function startProbeFlashServer(overrides = {}) {
     dbPath,
     logDir,
     staticDir,
+    closeoutRecoveryScan: closeoutRecoveryScanResult,
     close: async () => {
       await new Promise((resolvePromise, rejectPromise) => {
         server.close((error) => (error ? rejectPromise(error) : resolvePromise()));

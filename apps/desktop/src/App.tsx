@@ -11,6 +11,7 @@ import {
   STORAGE_REPOSITORY_RUNTIME,
   checkHttpStorageHealth,
   createStorageRepository,
+  type CloseoutRecoveryListResult,
   type CreateWorkspaceResult,
   type HttpStorageHealthStatus,
   type IssueCardListResult,
@@ -63,6 +64,7 @@ import {
   QuickIssueCreateBar,
 } from "./components/issue/IssueEntryComponents";
 import { MainlineResultPanel } from "./components/issue/MainlineResultPanel";
+import { CloseoutRecoveryPanel } from "./components/closeout/CloseoutRecoveryPanel";
 import { formatTags, labelIssueStatus } from "./components/issue/issueUiHelpers";
 import {
   CHECKING_STORAGE_CONNECTION_STATE,
@@ -376,8 +378,31 @@ function IssuePane({
     currentIssueId: string;
     historicalIssueId: string;
   } | null>(null);
+  const [closeoutRecovery, setCloseoutRecovery] = useState<CloseoutRecoveryListResult | null>(null);
 
   const recentIssueStorage = getBrowserRecentIssueStorage();
+
+  const refreshCloseoutRecovery = async () => {
+    const result = await repository.closeoutRecovery.list();
+    setCloseoutRecovery(result);
+    if (result.readError !== null) {
+      reportStorageError(
+        storageReadErrorToFeedback("issue_list", "list_closeout_recovery", result.readError),
+      );
+    }
+  };
+
+  const handleClearCloseoutRecovery = async (issueId: string) => {
+    const result = await repository.closeoutRecovery.clear(issueId);
+    if (!result.ok) {
+      reportStorageError(
+        storageWriteErrorToFeedback("issue_list", "clear_closeout_recovery", result.error),
+      );
+      return;
+    }
+    clearStorageFeedback();
+    await refreshCloseoutRecovery();
+  };
 
   const refreshCardList = async (options: { restoreRecent?: boolean } = {}) => {
     const shouldRestoreRecent = options.restoreRecent ?? true;
@@ -417,6 +442,7 @@ function IssuePane({
 
   useEffect(() => {
     void refreshCardList({ restoreRecent: true });
+    void refreshCloseoutRecovery();
   }, []);
 
   const reloadSelectedCard = async (
@@ -571,6 +597,7 @@ function IssuePane({
     setLastCloseout(summary);
     onCloseoutResult(summary);
     void refreshCardList({ restoreRecent: false });
+    void refreshCloseoutRecovery();
     void loadRecordList(summary.issueId);
     void reloadSelectedCard(summary.issueId, { recentState: null });
   };
@@ -639,6 +666,11 @@ function IssuePane({
 
   return (
     <div className="issue-pane-stack">
+      <CloseoutRecoveryPanel
+        result={closeoutRecovery}
+        onClear={handleClearCloseoutRecovery}
+        onRefresh={refreshCloseoutRecovery}
+      />
       <div className="issue-workbench">
         <aside className="issue-rail" aria-label="问题卡选择区">
           <IssueCardListView

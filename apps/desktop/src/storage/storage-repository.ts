@@ -430,6 +430,21 @@ async function searchLocalStorage(
   return { query: normalizedQuery, filters: normalizedFilters, items, readError: null };
 }
 
+export interface CloseoutRecoveryItem {
+  id: string;
+  title: string;
+  severity: IssueCard["severity"];
+  status: IssueCard["status"];
+  createdAt: string;
+  updatedAt: string;
+  closeoutState: "pending" | "failed";
+}
+
+export interface CloseoutRecoveryListResult {
+  items: CloseoutRecoveryItem[];
+  readError: StorageReadError | null;
+}
+
 export interface StorageRepository {
   search: {
     query(query: string, filters?: StorageSearchFilters): Promise<StorageSearchResult>;
@@ -459,6 +474,10 @@ export interface StorageRepository {
     load(scope: FormDraftScope): Promise<FormDraftLoadResult>;
     save(record: FormDraftRecord): Promise<StorageWriteResult>;
     clear(scope: FormDraftScope): Promise<StorageWriteResult>;
+  };
+  closeoutRecovery: {
+    list(): Promise<CloseoutRecoveryListResult>;
+    clear(issueId: string): Promise<StorageWriteResult>;
   };
 }
 
@@ -583,6 +602,17 @@ function createLocalStorageRepository(workspaceId: string = DEFAULT_WORKSPACE.id
         } catch (error) {
           return { ok: false, error: createUnexpectedWriteError("form_draft", formDraftStorageKey(scope), error) };
         }
+      },
+    },
+    closeoutRecovery: {
+      // localStorage fallback never wrote closeout_state markers (TECH-01/02 are
+      // server-only), so the recovery list is always empty. Clear is a no-op so
+      // callers can use the same surface uniformly.
+      async list(): Promise<CloseoutRecoveryListResult> {
+        return { items: [], readError: null };
+      },
+      async clear(): Promise<StorageWriteResult> {
+        return storageWriteOk();
       },
     },
   };

@@ -1208,6 +1208,44 @@ export function createProbeFlashDatabase(dbPath, options = {}) {
         issue: { ...issue, closeoutState: "completed" },
       };
     },
+    listCloseoutRecovery(workspaceId) {
+      // TECH-02: surface issues whose closeout transaction was attempted but did not
+      // reach 'completed'. Both pending (server crashed mid-flight or marker write
+      // happened but txn never finished) and failed (txn rolled back, marker promoted)
+      // are recovery candidates — both deserve user review before retrying closeout
+      // or clearing the marker.
+      requireWorkspace(workspaceId);
+      const rows = db
+        .prepare(
+          `SELECT id, title, severity, status, created_at, updated_at, closeout_state
+           FROM issues
+           WHERE workspace_id = ? AND closeout_state IN ('pending', 'failed')
+           ORDER BY updated_at DESC, id ASC`,
+        )
+        .all(workspaceId);
+      return rows.map((row) => ({
+        id: row.id,
+        title: row.title,
+        severity: row.severity,
+        status: row.status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at,
+        closeoutState: row.closeout_state,
+      }));
+    },
+    clearCloseoutState(workspaceId, issueId) {
+      // TECH-02: idempotent clear. Used to dismiss a pending/failed marker once the
+      // user has either re-run the closeout (which itself promotes the marker) or
+      // confirmed the issue should stay un-archived. Does not touch issue.status —
+      // partial-closeout rows always rolled back to their pre-closeout state thanks
+      // to the TECH-01 transaction, so status is already correct.
+      requireWorkspace(workspaceId);
+      requireIssue(workspaceId, issueId);
+      db.prepare(
+        `UPDATE issues SET closeout_state = NULL WHERE workspace_id = ? AND id = ?`,
+      ).run(workspaceId, issueId);
+      return { workspaceId, issueId, closeoutState: null };
+    },
     listRecords(workspaceId, issueId) {
       requireWorkspace(workspaceId);
       requireIssue(workspaceId, issueId);

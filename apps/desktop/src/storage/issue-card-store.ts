@@ -26,6 +26,9 @@ export type LoadIssueCardResult =
   | { ok: true; card: IssueCard }
   | { ok: false; error: LoadIssueCardError };
 
+export const CLOSEOUT_RECOVERY_STATES = ["pending", "completed", "failed"] as const;
+export type CloseoutRecoveryState = (typeof CLOSEOUT_RECOVERY_STATES)[number];
+
 export interface IssueCardSummary {
   id: string;
   title: string;
@@ -33,6 +36,12 @@ export interface IssueCardSummary {
   status: z.infer<typeof IssueStatus>;
   createdAt: string;
   updatedAt: string;
+  /**
+   * Closeout transaction marker exposed by the server (TECH-01/02). Always null on the
+   * local-storage fallback path. `pending` / `failed` mean the issue needs review (see
+   * TECH-02 closeout recovery flow); `completed` is the post-archive happy state.
+   */
+  closeoutState?: CloseoutRecoveryState | null;
 }
 
 export type IssueCardListInvalidEntry =
@@ -48,7 +57,7 @@ export interface IssueCardListResult {
 const storageKey = (id: string): string => KEY_PREFIX + id;
 
 const toSummary = ({ id, title, severity, status, createdAt, updatedAt }: IssueCard): IssueCardSummary =>
-  ({ id, title, severity, status, createdAt, updatedAt });
+  ({ id, title, severity, status, createdAt, updatedAt, closeoutState: null });
 
 export function saveIssueCard(card: IssueCard): StorageWriteResult {
   return persistValidatedEntity({

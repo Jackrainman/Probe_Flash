@@ -56,6 +56,7 @@ import {
   type StorageWriteResult,
 } from "./storage-result.ts";
 import type {
+  CloseoutRecoveryListResult,
   CreateWorkspaceResult,
   FormDraftLoadResult,
   FormDraftRecord,
@@ -73,6 +74,8 @@ const ItemsEnvelopeSchema = z.object({
   items: z.array(z.unknown()),
 });
 
+const CloseoutStateSchema = z.enum(["pending", "completed", "failed"]);
+
 const IssueCardSummarySchema = z.object({
   id: z.string().min(1),
   title: z.string().min(1),
@@ -80,6 +83,27 @@ const IssueCardSummarySchema = z.object({
   status: IssueStatus,
   createdAt: z.string().datetime({ offset: true }),
   updatedAt: z.string().datetime({ offset: true }),
+  closeoutState: CloseoutStateSchema.nullable().optional(),
+});
+
+const CloseoutRecoveryItemSchema = z.object({
+  id: z.string().min(1),
+  title: z.string().min(1),
+  severity: IssueSeverity,
+  status: IssueStatus,
+  createdAt: z.string().datetime({ offset: true }),
+  updatedAt: z.string().datetime({ offset: true }),
+  closeoutState: z.enum(["pending", "failed"]),
+});
+
+const CloseoutRecoveryListResponseSchema = z.object({
+  items: z.array(CloseoutRecoveryItemSchema),
+});
+
+const CloseoutRecoveryClearResponseSchema = z.object({
+  workspaceId: z.string().min(1),
+  issueId: z.string().min(1),
+  closeoutState: z.null(),
 });
 
 const WorkspaceSchema = z.object({
@@ -890,6 +914,67 @@ export function createHttpStorageRepository(
           "form_draft",
           target,
         );
+      },
+    },
+    closeoutRecovery: {
+      async list(): Promise<CloseoutRecoveryListResult> {
+        const target = `${basePath}/closeout-recovery`;
+        try {
+          const data = await client.request<unknown>(target);
+          const parsed = CloseoutRecoveryListResponseSchema.safeParse(data);
+          if (!parsed.success) {
+            return {
+              items: [],
+              readError: dataValidationReadError(
+                "issue_card",
+                target,
+                "closeout-recovery response must contain data.items[]",
+              ),
+            };
+          }
+          return { items: parsed.data.items, readError: null };
+        } catch (error) {
+          if (isRequestError(error)) {
+            return {
+              items: [],
+              readError: mapRequestErrorToReadError("issue_card", target, error),
+            };
+          }
+          return {
+            items: [],
+            readError: createReadFailed("issue_card", target, error),
+          };
+        }
+      },
+      async clear(issueId: string): Promise<StorageWriteResult> {
+        const target = `${basePath}/closeout-recovery/${encodeURIComponent(issueId)}/clear`;
+        try {
+          const data = await client.request<unknown>(target, {
+            method: "POST",
+            body: JSON.stringify({}),
+          });
+          const parsed = CloseoutRecoveryClearResponseSchema.safeParse(data);
+          if (!parsed.success) {
+            return {
+              ok: false,
+              error: createUnexpectedWriteError(
+                "issue_card",
+                target,
+                "closeout-recovery clear response missing closeoutState=null",
+                createDegradedConnection(
+                  "closeout-recovery clear response missing closeoutState=null",
+                  new Date().toISOString(),
+                ),
+              ),
+            };
+          }
+          return storageWriteOk();
+        } catch (error) {
+          if (isRequestError(error)) {
+            return { ok: false, error: mapRequestErrorToWriteError("issue_card", target, error) };
+          }
+          return { ok: false, error: createUnexpectedWriteError("issue_card", target, error) };
+        }
       },
     },
   };
