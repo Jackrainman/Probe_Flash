@@ -5,6 +5,7 @@ import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path
 import { fileURLToPath } from "node:url";
 
 import { DEFAULT_WORKSPACE, createProbeFlashDatabase } from "./database.mjs";
+import { createRepositories } from "./repositories/index.mjs";
 import { generateDeepSeekDraft, getDeepSeekStatus } from "./ai/deepseek-client.mjs";
 import {
   buildAiPromptTemplate,
@@ -173,8 +174,8 @@ async function readJson(req) {
   }
 }
 
-function ensureStorageReady(store) {
-  if (store) return;
+function ensureStorageReady(repositories) {
+  if (repositories) return;
   const error = new Error("storage is not ready");
   error.code = "SERVICE_UNAVAILABLE";
   throw error;
@@ -233,7 +234,7 @@ function storageInitFailureDetails(releaseMetadata) {
   };
 }
 
-function createRequestHandler({ store, storeInitError, staticDir, releaseMetadata }) {
+function createRequestHandler({ repositories, storeInitError, staticDir, releaseMetadata }) {
   const param = (match, index) => decodeURIComponent(match[index]);
   return async (req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
@@ -296,22 +297,22 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
             },
           });
         }
-        return ok(res, { ...store.health(), server: serverStatus(), release: releaseMetadata });
+        return ok(res, { ...repositories.workspace.health(), server: serverStatus(), release: releaseMetadata });
       }
 
-      ensureStorageReady(store);
+      ensureStorageReady(repositories);
 
       if (url.pathname === "/api/workspaces" && method === "GET") {
-        return ok(res, { items: store.listWorkspaces() });
+        return ok(res, { items: repositories.workspace.list() });
       }
 
       if (url.pathname === "/api/workspaces" && method === "POST") {
         const payload = await readJson(req);
-        return ok(res, { workspace: store.createWorkspace(payload) }, 201);
+        return ok(res, { workspace: repositories.workspace.create(payload) }, 201);
       }
 
       if (workspaceDetailMatch && method === "GET") {
-        return ok(res, store.getWorkspace(param(workspaceDetailMatch, 1)));
+        return ok(res, repositories.workspace.get(param(workspaceDetailMatch, 1)));
       }
 
       if (aiStatusMatch && method === "GET") {
@@ -327,8 +328,8 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
         }
         const prompt = buildAiPromptTemplate({
           task: request.task,
-          issue: store.getIssue(workspaceId, request.issueId),
-          records: store.listRecords(workspaceId, request.issueId),
+          issue: repositories.issue.get(workspaceId, request.issueId),
+          records: repositories.record.list(workspaceId, request.issueId),
           closeoutDraft: request.closeoutDraft,
         });
         const result = await generateDeepSeekDraft({ task: prompt.task, messages: prompt.messages });
@@ -349,29 +350,32 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
       if (issueListMatch && method === "GET") {
         const workspaceId = param(issueListMatch, 1);
         const status = url.searchParams.get("status") ?? "active";
-        return ok(res, { items: store.listIssues(workspaceId, status) });
+        return ok(res, { items: repositories.issue.list(workspaceId, status) });
       }
 
       if (issueListMatch && method === "POST") {
         const workspaceId = param(issueListMatch, 1);
         const payload = await readJson(req);
-        return ok(res, store.createIssue(workspaceId, payload), 201);
+        return ok(res, repositories.issue.create(workspaceId, payload), 201);
       }
 
       if (issueDetailMatch && method === "GET") {
-        return ok(res, store.getIssue(param(issueDetailMatch, 1), param(issueDetailMatch, 2)));
+        return ok(res, repositories.issue.get(param(issueDetailMatch, 1), param(issueDetailMatch, 2)));
       }
 
       if (issueDetailMatch && method === "PUT") {
         const payload = await readJson(req);
-        return ok(res, store.updateIssue(param(issueDetailMatch, 1), param(issueDetailMatch, 2), payload));
+        return ok(
+          res,
+          repositories.issue.update(param(issueDetailMatch, 1), param(issueDetailMatch, 2), payload),
+        );
       }
 
       if (issueCloseoutMatch && method === "POST") {
         const payload = await readJson(req);
         return ok(
           res,
-          store.closeoutIssue(
+          repositories.issue.closeout(
             param(issueCloseoutMatch, 1),
             param(issueCloseoutMatch, 2),
             payload,
@@ -381,17 +385,23 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
       }
 
       if (recordListMatch && method === "GET") {
-        return ok(res, { items: store.listRecords(param(recordListMatch, 1), param(recordListMatch, 2)) });
+        return ok(res, {
+          items: repositories.record.list(param(recordListMatch, 1), param(recordListMatch, 2)),
+        });
       }
 
       if (recordListMatch && method === "POST") {
         const payload = await readJson(req);
-        return ok(res, store.createRecord(param(recordListMatch, 1), param(recordListMatch, 2), payload), 201);
+        return ok(
+          res,
+          repositories.record.create(param(recordListMatch, 1), param(recordListMatch, 2), payload),
+          201,
+        );
       }
 
       if (searchMatch && method === "GET") {
         const workspaceId = param(searchMatch, 1);
-        return ok(res, store.search(workspaceId, {
+        return ok(res, repositories.search.query(workspaceId, {
           query: url.searchParams.get("q") ?? "",
           limit: url.searchParams.get("limit") ?? undefined,
           kind: url.searchParams.get("kind") ?? undefined,
@@ -403,41 +413,47 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
       }
 
       if (archiveListMatch && method === "GET") {
-        return ok(res, { items: store.listArchives(param(archiveListMatch, 1)) });
+        return ok(res, { items: repositories.archive.list(param(archiveListMatch, 1)) });
       }
 
       if (archiveListMatch && method === "POST") {
         const payload = await readJson(req);
-        return ok(res, store.createArchive(param(archiveListMatch, 1), payload), 201);
+        return ok(res, repositories.archive.create(param(archiveListMatch, 1), payload), 201);
       }
 
       if (archiveDetailMatch && method === "GET") {
-        return ok(res, store.getArchive(param(archiveDetailMatch, 1), param(archiveDetailMatch, 2)));
+        return ok(
+          res,
+          repositories.archive.get(param(archiveDetailMatch, 1), param(archiveDetailMatch, 2)),
+        );
       }
 
       if (errorEntryListMatch && method === "GET") {
-        return ok(res, { items: store.listErrorEntries(param(errorEntryListMatch, 1)) });
+        return ok(res, { items: repositories.errorEntry.list(param(errorEntryListMatch, 1)) });
       }
 
       if (errorEntryListMatch && method === "POST") {
         const payload = await readJson(req);
-        return ok(res, store.createErrorEntry(param(errorEntryListMatch, 1), payload), 201);
+        return ok(res, repositories.errorEntry.create(param(errorEntryListMatch, 1), payload), 201);
       }
 
       if (errorEntryDetailMatch && method === "GET") {
-        return ok(res, store.getErrorEntry(param(errorEntryDetailMatch, 1), param(errorEntryDetailMatch, 2)));
+        return ok(
+          res,
+          repositories.errorEntry.get(param(errorEntryDetailMatch, 1), param(errorEntryDetailMatch, 2)),
+        );
       }
 
       if (closeoutRecoveryListMatch && method === "GET") {
         return ok(res, {
-          items: store.listCloseoutRecovery(param(closeoutRecoveryListMatch, 1)),
+          items: repositories.closeoutRecovery.list(param(closeoutRecoveryListMatch, 1)),
         });
       }
 
       if (closeoutRecoveryClearMatch && method === "POST") {
         return ok(
           res,
-          store.clearCloseoutState(
+          repositories.closeoutRecovery.clear(
             param(closeoutRecoveryClearMatch, 1),
             param(closeoutRecoveryClearMatch, 2),
           ),
@@ -446,13 +462,17 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
 
       if (formDraftDetailMatch && method === "GET") {
         return ok(res, {
-          draft: store.getFormDraft(param(formDraftDetailMatch, 1), param(formDraftDetailMatch, 2), param(formDraftDetailMatch, 3)),
+          draft: repositories.formDraft.get(
+            param(formDraftDetailMatch, 1),
+            param(formDraftDetailMatch, 2),
+            param(formDraftDetailMatch, 3),
+          ),
         });
       }
 
       if (formDraftDetailMatch && method === "PUT") {
         const payload = await readJson(req);
-        return ok(res, store.saveFormDraft(
+        return ok(res, repositories.formDraft.save(
           param(formDraftDetailMatch, 1),
           param(formDraftDetailMatch, 2),
           param(formDraftDetailMatch, 3),
@@ -461,7 +481,7 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
       }
 
       if (formDraftDetailMatch && method === "DELETE") {
-        return ok(res, store.deleteFormDraft(
+        return ok(res, repositories.formDraft.delete(
           param(formDraftDetailMatch, 1),
           param(formDraftDetailMatch, 2),
           param(formDraftDetailMatch, 3),
@@ -490,10 +510,12 @@ export async function startProbeFlashServer(overrides = {}) {
   const { dbPath, host, port, defaultWorkspace, logDir, staticDir, releaseMetadata } = getConfig(overrides);
   let store = null;
   let storeInitError = null;
+  let repositories = null;
   let closeoutRecoveryScanResult = { ok: false, items: [], error: null };
 
   try {
     store = createProbeFlashDatabase(dbPath, { defaultWorkspace });
+    repositories = createRepositories(store);
   } catch (error) {
     storeInitError = error instanceof Error ? error : new Error(String(error));
   }
@@ -503,9 +525,9 @@ export async function startProbeFlashServer(overrides = {}) {
   // never silently linger; the GET /closeout-recovery API exposes the full list to the
   // desktop UI which decides how to surface them. Suppressed in test runs by passing
   // overrides.suppressCloseoutRecoveryLog = true.
-  if (store) {
+  if (repositories) {
     try {
-      const items = store.listCloseoutRecovery(defaultWorkspace.id);
+      const items = repositories.closeoutRecovery.list(defaultWorkspace.id);
       closeoutRecoveryScanResult = { ok: true, items, error: null };
       if (!overrides.suppressCloseoutRecoveryLog) {
         if (items.length === 0) {
@@ -537,7 +559,7 @@ export async function startProbeFlashServer(overrides = {}) {
     }
   }
 
-  const server = createServer(createRequestHandler({ store, storeInitError, staticDir, releaseMetadata }));
+  const server = createServer(createRequestHandler({ repositories, storeInitError, staticDir, releaseMetadata }));
 
   await new Promise((resolvePromise, rejectPromise) => {
     const handleError = (error) => {
