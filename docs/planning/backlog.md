@@ -12,8 +12,8 @@
 
 | 任务 | 状态 | 依赖 | 具体内容 |
 |------|------|------|----------|
-| TECH-01-CLOSEOUT-ATOMICITY-DESIGN | current | — | closeout 写 ErrorEntry + ArchiveDocument 包 `BEGIN/COMMIT/ROLLBACK`；加 `closeout_state` 标记位 |
-| TECH-02-CLOSEOUT-ATOMICITY-RECOVERY | pending | TECH-01 | 启动扫 `closeout_state = pending`；提供完成/回滚入口；前端提示 |
+| TECH-01-CLOSEOUT-ATOMICITY-DESIGN | done | — | closeout 写 ErrorEntry + ArchiveDocument 包 `BEGIN/COMMIT/ROLLBACK`；加 `closeout_state` 标记位（已落 server `closeoutIssue` + verify-server-closeout-atomicity） |
+| TECH-02-CLOSEOUT-ATOMICITY-RECOVERY | current | TECH-01（done） | 启动扫 `closeout_state = pending`；提供完成/回滚入口；前端提示 |
 | TECH-08-HTTP-REPOSITORY-SPLIT | pending | — | 从 `server.mjs` 抽 `store.*` 调用成独立 Repository 层；按 entity 分文件 |
 | TECH-09-SERVER-ROUTE-SPLIT | pending | TECH-08 | 20+ 路由按 entity 拆文件；`server.mjs` 从 509 行瘦到 ~80 行 |
 | TECH-10-DATABASE-MODULE-SPLIT | pending | — | 1220 行 `database.mjs` 按 entity 拆分；主文件变协调器 |
@@ -21,7 +21,7 @@
 
 **可并行组：**
 - Group A（infra 串行）：TECH-04（done） → TECH-05（done） → TECH-06（done）
-- Group B（closeout 串行）：TECH-01 → TECH-02
+- Group B（closeout 串行）：TECH-01（done） → TECH-02
 - Group C（HTTP arch 串行）：TECH-08 → TECH-09
 - Group D（独立并行）：TECH-10（DB 拆分，与 Group C 不冲突）
 - 扫尾：TECH-03

@@ -3,7 +3,8 @@ import { randomUUID } from "node:crypto";
 import { basename, dirname } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
-export const SCHEMA_VERSION = 2;
+export const SCHEMA_VERSION = 3;
+export const CLOSEOUT_STATES = new Set(["pending", "completed", "failed"]);
 export const DEFAULT_WORKSPACE = {
   id: "workspace-26-r1",
   name: "26年 R1",
@@ -628,11 +629,16 @@ export function createProbeFlashDatabase(dbPath, options = {}) {
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       payload_json TEXT NOT NULL,
+      closeout_state TEXT,
       FOREIGN KEY (workspace_id) REFERENCES workspaces(id) ON DELETE RESTRICT
     );
 
     CREATE INDEX IF NOT EXISTS idx_issues_workspace_status_created
     ON issues (workspace_id, status, created_at DESC);
+
+    CREATE INDEX IF NOT EXISTS idx_issues_workspace_closeout_state
+    ON issues (workspace_id, closeout_state)
+    WHERE closeout_state IS NOT NULL;
 
     CREATE TABLE IF NOT EXISTS records (
       id TEXT PRIMARY KEY,
@@ -693,6 +699,19 @@ export function createProbeFlashDatabase(dbPath, options = {}) {
     ON form_drafts (workspace_id, updated_at DESC);
   `);
 
+  // Idempotent additive migration: pre-existing dbs (created before SCHEMA_VERSION 3)
+  // need closeout_state column added. CREATE TABLE IF NOT EXISTS won't add columns
+  // to an existing table, so we inspect via PRAGMA table_info and ALTER TABLE if missing.
+  const issueColumns = db.prepare(`PRAGMA table_info('issues')`).all();
+  if (!issueColumns.some((column) => column.name === "closeout_state")) {
+    db.exec(`ALTER TABLE issues ADD COLUMN closeout_state TEXT`);
+    db.exec(
+      `CREATE INDEX IF NOT EXISTS idx_issues_workspace_closeout_state
+       ON issues (workspace_id, closeout_state)
+       WHERE closeout_state IS NOT NULL`,
+    );
+  }
+
   const now = new Date().toISOString();
   db.prepare(`
     INSERT INTO schema_meta (key, value, updated_at)
@@ -745,16 +764,28 @@ export function createProbeFlashDatabase(dbPath, options = {}) {
     };
   }
 
-  function requireIssue(workspaceId, issueId) {
-    const row = db
+  function readIssueRow(workspaceId, issueId) {
+    return db
       .prepare(
-        `SELECT id, workspace_id, payload_json FROM issues WHERE workspace_id = ? AND id = ?`,
+        `SELECT id, workspace_id, payload_json, closeout_state FROM issues WHERE workspace_id = ? AND id = ?`,
       )
       .get(workspaceId, issueId);
+  }
+
+  function requireIssue(workspaceId, issueId) {
+    const row = readIssueRow(workspaceId, issueId);
     if (!row) {
       throw createStorageError(`issue ${issueId} not found`, "NOT_FOUND");
     }
     return parsePayload(row);
+  }
+
+  function getIssueResponse(workspaceId, issueId) {
+    const row = readIssueRow(workspaceId, issueId);
+    if (!row) {
+      throw createStorageError(`issue ${issueId} not found`, "NOT_FOUND");
+    }
+    return { ...parsePayload(row), closeoutState: row.closeout_state ?? null };
   }
 
   return {
@@ -969,7 +1000,7 @@ export function createProbeFlashDatabase(dbPath, options = {}) {
     listIssues(workspaceId, statusFilter = "active") {
       requireWorkspace(workspaceId);
       let sql = `
-        SELECT id, title, severity, status, created_at, updated_at
+        SELECT id, title, severity, status, created_at, updated_at, closeout_state
         FROM issues
         WHERE workspace_id = ?
       `;
@@ -987,6 +1018,7 @@ export function createProbeFlashDatabase(dbPath, options = {}) {
         status: row.status,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
+        closeoutState: row.closeout_state ?? null,
       }));
     },
     createIssue(workspaceId, payload) {
@@ -1015,7 +1047,8 @@ export function createProbeFlashDatabase(dbPath, options = {}) {
       return issue;
     },
     getIssue(workspaceId, issueId) {
-      return requireIssue(workspaceId, issueId);
+      requireWorkspace(workspaceId);
+      return getIssueResponse(workspaceId, issueId);
     },
     updateIssue(workspaceId, issueId, payload) {
       requireWorkspace(workspaceId);
@@ -1039,6 +1072,141 @@ export function createProbeFlashDatabase(dbPath, options = {}) {
         issueId,
       );
       return issue;
+    },
+    closeoutIssue(workspaceId, issueId, payload) {
+      // TECH-01: atomically write ArchiveDocument + ErrorEntry + archived Issue inside a
+      // single SQLite BEGIN IMMEDIATE / COMMIT / ROLLBACK transaction.
+      //
+      // Marker lifecycle on issues.closeout_state (additive, autocommitted):
+      //   pending  → set OUTSIDE the transaction so a mid-flight crash leaves the row
+      //              flagged for TECH-02 startup-side recovery scan
+      //   completed → set INSIDE the transaction at the issue UPDATE step (committed atomically)
+      //   failed   → set OUTSIDE the transaction after a caught failure + ROLLBACK so the
+      //              flag survives the rolled-back txn
+      requireWorkspace(workspaceId);
+      assertObject(payload, "closeout payload must be an object");
+      assertObject(payload.archive, "closeout.archive must be an object");
+      assertObject(payload.errorEntry, "closeout.errorEntry must be an object");
+      assertObject(payload.issue, "closeout.issue must be an object");
+
+      const archive = normalizeArchivePayload(workspaceId, structuredClone(payload.archive));
+      const errorEntry = normalizeErrorEntryPayload(workspaceId, structuredClone(payload.errorEntry));
+      const issue = normalizeIssuePayload(workspaceId, structuredClone(payload.issue));
+
+      if (issue.id !== issueId) {
+        throw createStorageError("closeout.issue.id must match path issueId", "VALIDATION_ERROR");
+      }
+      if (archive.issueId !== issueId) {
+        throw createStorageError(
+          "closeout.archive.issueId must match path issueId",
+          "VALIDATION_ERROR",
+        );
+      }
+      if (errorEntry.sourceIssueId !== issueId) {
+        throw createStorageError(
+          "closeout.errorEntry.sourceIssueId must match path issueId",
+          "VALIDATION_ERROR",
+        );
+      }
+      if (issue.status !== "archived") {
+        throw createStorageError("closeout.issue.status must be archived", "VALIDATION_ERROR");
+      }
+
+      // Confirm the target issue exists before touching any state. Throws NOT_FOUND if missing.
+      requireIssue(workspaceId, issueId);
+
+      // Pre-step (autocommit): mark the issue closeout_state = 'pending'. This must land on
+      // disk OUTSIDE the upcoming transaction so that a crash mid-transaction leaves a
+      // recoverable signal for TECH-02 (the rollback-on-recovery would otherwise erase any
+      // marker written inside the transaction).
+      db.prepare(
+        `UPDATE issues SET closeout_state = 'pending' WHERE workspace_id = ? AND id = ?`,
+      ).run(workspaceId, issueId);
+
+      try {
+        db.exec("BEGIN IMMEDIATE");
+
+        try {
+          db.prepare(`
+            INSERT INTO archives (workspace_id, file_name, issue_id, file_path, generated_at, payload_json)
+            VALUES (?, ?, ?, ?, ?, ?)
+          `).run(
+            workspaceId,
+            archive.fileName,
+            archive.issueId,
+            archive.filePath,
+            archive.generatedAt,
+            JSON.stringify(archive),
+          );
+        } catch (error) {
+          if (isUniqueConstraintError(error)) {
+            throw createStorageError(`archive ${archive.fileName} already exists`, "CONFLICT");
+          }
+          throw error;
+        }
+
+        try {
+          db.prepare(`
+            INSERT INTO error_entries (
+              id, workspace_id, source_issue_id, error_code, category, created_at, updated_at, payload_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+          `).run(
+            errorEntry.id,
+            workspaceId,
+            errorEntry.sourceIssueId,
+            errorEntry.errorCode,
+            errorEntry.category,
+            errorEntry.createdAt,
+            errorEntry.updatedAt,
+            JSON.stringify(errorEntry),
+          );
+        } catch (error) {
+          if (isUniqueConstraintError(error)) {
+            throw createStorageError(`error entry conflict for ${errorEntry.id}`, "CONFLICT");
+          }
+          throw error;
+        }
+
+        db.prepare(`
+          UPDATE issues
+          SET title = ?, severity = ?, status = ?, created_at = ?, updated_at = ?, payload_json = ?, closeout_state = 'completed'
+          WHERE workspace_id = ? AND id = ?
+        `).run(
+          issue.title,
+          issue.severity,
+          issue.status,
+          issue.createdAt,
+          issue.updatedAt,
+          JSON.stringify(issue),
+          workspaceId,
+          issueId,
+        );
+
+        db.exec("COMMIT");
+      } catch (error) {
+        try {
+          db.exec("ROLLBACK");
+        } catch {
+          // ROLLBACK can fail if no transaction is active (e.g. BEGIN itself failed).
+          // In that case the autocommitted 'pending' marker still needs to be promoted
+          // to 'failed' below; suppress secondary rollback errors.
+        }
+        try {
+          db.prepare(
+            `UPDATE issues SET closeout_state = 'failed' WHERE workspace_id = ? AND id = ?`,
+          ).run(workspaceId, issueId);
+        } catch {
+          // If even this autocommit fails, closeout_state stays 'pending' and TECH-02
+          // recovery scan will pick it up — losing 'failed' here is non-fatal.
+        }
+        throw error;
+      }
+
+      return {
+        archive,
+        errorEntry,
+        issue: { ...issue, closeoutState: "completed" },
+      };
     },
     listRecords(workspaceId, issueId) {
       requireWorkspace(workspaceId);

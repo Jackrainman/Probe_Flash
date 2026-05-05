@@ -250,6 +250,9 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
 
     const issueListMatch = url.pathname.match(/^\/api\/workspaces\/([^/]+)\/issues$/);
     const issueDetailMatch = url.pathname.match(/^\/api\/workspaces\/([^/]+)\/issues\/([^/]+)$/);
+    const issueCloseoutMatch = url.pathname.match(
+      /^\/api\/workspaces\/([^/]+)\/issues\/([^/]+)\/closeout$/,
+    );
     const recordListMatch = url.pathname.match(
       /^\/api\/workspaces\/([^/]+)\/issues\/([^/]+)\/records$/,
     );
@@ -356,6 +359,19 @@ function createRequestHandler({ store, storeInitError, staticDir, releaseMetadat
       if (issueDetailMatch && method === "PUT") {
         const payload = await readJson(req);
         return ok(res, store.updateIssue(param(issueDetailMatch, 1), param(issueDetailMatch, 2), payload));
+      }
+
+      if (issueCloseoutMatch && method === "POST") {
+        const payload = await readJson(req);
+        return ok(
+          res,
+          store.closeoutIssue(
+            param(issueCloseoutMatch, 1),
+            param(issueCloseoutMatch, 2),
+            payload,
+          ),
+          201,
+        );
       }
 
       if (recordListMatch && method === "GET") {
