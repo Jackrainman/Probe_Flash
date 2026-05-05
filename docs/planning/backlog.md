@@ -16,14 +16,14 @@
 | TECH-02-CLOSEOUT-ATOMICITY-RECOVERY | done | TECH-01（done） | 启动扫 `closeout_state = pending`；`/api/.../closeout-recovery` GET/POST clear；前端 `CloseoutRecoveryPanel` 解除标记；server `verify-server-closeout-recovery` + desktop `verify-data-closeout-recovery-ux` |
 | TECH-08-HTTP-REPOSITORY-SPLIT | done | — | 从 `server.mjs` 抽 `store.*` 调用成 `apps/server/src/repositories/*.mjs`（每 entity 一文件 + index 聚合）；HTTP handler 全部走 `repositories.<entity>.<method>` |
 | TECH-09-SERVER-ROUTE-SPLIT | done | TECH-08（done） | 20+ 路由按 entity 拆到 `apps/server/src/routes/<entity>.mjs`；新增 `http/{responses,static,dispatcher}.mjs` + `config.mjs` + `closeoutRecoveryScan.mjs`；server.mjs 从 610 行瘦到 85 行 |
-| TECH-10-DATABASE-MODULE-SPLIT | current | — | 1426 行 `database.mjs` 按 entity 拆分；主文件变协调器 |
-| TECH-03-WORKSPACEID-CONSISTENCY-LATER | pending | — | review 所有查询是否过滤 `workspace_id`；补测试；最低优先级 |
+| TECH-10-DATABASE-MODULE-SPLIT | done | — | 1426 行 `database.mjs` 拆成 `apps/server/src/db/{constants,storage-error,validation,schema,lookups,workspace,issue,record,archive,errorEntry,formDraft,closeoutRecovery,search}.mjs`；database.mjs 退化为 89 行的协调器 |
+| TECH-03-WORKSPACEID-CONSISTENCY-LATER | current | — | 审 `apps/server/src/db/*.mjs` 所有查询是否过滤 `workspace_id`；新建 `verify-server-workspace-isolation.mjs`；最低优先级 |
 
 **可并行组：**
 - Group A（infra 串行）：TECH-04（done） → TECH-05（done） → TECH-06（done）
 - Group B（closeout 串行）：TECH-01（done） → TECH-02（done）
 - Group C（HTTP arch 串行）：TECH-08（done） → TECH-09（done）
-- Group D（独立并行）：TECH-10（DB 拆分，与 Group C 不冲突）
+- Group D（独立并行）：TECH-10（done）（DB 拆分，已与 Group C 并行完成）
 - 扫尾：TECH-03
 
 夜跑跳过被阻塞的（没依赖前任务的）先做有依赖已完成或没依赖的。

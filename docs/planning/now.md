@@ -6,11 +6,11 @@
 mode: server_storage_migration
 stage: R1
 stage_goal: v0.3.0 已发布；P0 = 技术债地基加固（夜跑纯还债） + AI草稿流准备（白天主线）
-current_task: TECH-10-DATABASE-MODULE-SPLIT
+current_task: TECH-03-WORKSPACEID-CONSISTENCY-LATER
 frontier:
-  - TECH-10-DATABASE-MODULE-SPLIT  # current, P0, night-safe, 独立无依赖
-  - TECH-03-WORKSPACEID-CONSISTENCY-LATER  # pending, P0, 夜跑, 扫尾
+  - TECH-03-WORKSPACEID-CONSISTENCY-LATER  # current, P0, 夜跑, 扫尾（最后一波技术债）
   - AIREADY-02-PROMPT-SCHEMA-VERSIONING  # pending, P1, 白天主线, night-safe
+  - AIREADY-08-MOCK-PROVIDER  # pending, P1, 白天, night-safe
 night_run: active  # TECH 链纯本地，无真实服务器/API key/sudo 依赖
 blocked:
   - REALAI-09-REAL-PROVIDER-OPT-IN-SMOKE  # 等用户 source env，AIREADY P1 完成后解
@@ -21,17 +21,17 @@ post_0_3_registry:
 ```
 
 ## 当前任务
-- **TECH-10-DATABASE-MODULE-SPLIT**（P0，夜跑，night-safe；独立无依赖）
-- 目标：1426 行 `apps/server/src/database.mjs` 按 entity 拆成 `apps/server/src/db/<entity>.mjs`（issues / records / archives / errorEntries / formDrafts / workspaces / closeout / search / schema），database.mjs 退化为协调器（schema setup + 子模块装配）。
-- 边界：只动 `apps/server/src/database.mjs` + 新建 `apps/server/src/db/*.mjs`；不改 store API（`createProbeFlashDatabase` 保留所有方法名签名 + 行为）；不动 routes/repositories；不引入 ORM。
-- 不做：拆 store 方法的语义、删 schema、引入新表/外键；TECH-03 workspaceId consistency 扫尾另走。
-- DoD：database.mjs 行数明显下降（< 200 行）；子模块每个 < 300 行；现有 verify 链全过；`createProbeFlashDatabase` 返回的 store 形状不变；`git diff --check` 干净。
-- 验证：`cd apps/server` 全量 verify:* + atomicity / recovery；`cd apps/desktop && npm run typecheck && npm run build && npm run verify:all`；`git diff --check`。
+- **TECH-03-WORKSPACEID-CONSISTENCY-LATER**（P0，夜跑，night-safe；扫尾，最后一波技术债）
+- 目标：审计 `apps/server/src/db/*.mjs` 中所有 SELECT/UPDATE/DELETE 是否都按 `workspace_id` 过滤；为容易跨 workspace 泄漏的查询补 workspace 隔离测试。
+- 边界：只动 `apps/server/src/db/*.mjs` 与新建的 verify 脚本；不改 schema、不改 routes / repositories；不引入新 column。
+- 不做：跨 workspace 数据迁移、workspace 删除、workspace 软删除。
+- DoD：每个 entity 的 list/get/create/update/delete 都已显式过滤 workspace_id（已审计且可在 verify 脚本中证明）；新建 `verify-server-workspace-isolation.mjs` 覆盖每 entity 的"workspace A 的数据不会泄漏到 workspace B"案例；现有 verify 链全过；`git diff --check` 干净。
+- 验证：`cd apps/server` 全量 verify:* + 新建 isolation verify；`cd apps/desktop && npm run typecheck && npm run build && npm run verify:all`；`git diff --check`。
 
 ## 前沿候选（≤3）
-- TECH-03-WORKSPACEID-CONSISTENCY-LATER（pending，P0，夜跑，扫尾）
 - AIREADY-02-PROMPT-SCHEMA-VERSIONING（pending，P1，白天主线，night-safe）
 - AIREADY-08-MOCK-PROVIDER（pending，P1，白天，night-safe）
+- AIREADY-03-GOLDEN-DRAFT-FIXTURES（pending，P1，白天，night-safe）
 
 ## 阻塞 / 待拍板
 - REALAI-09 真实 DeepSeek key smoke：等用户 source env + AIREADY P1 完成（prompt schema 版本管理就绪后解）。
@@ -56,13 +56,14 @@ post_0_3_registry:
 | AI-ready 草稿 / DeepSeek 结案草稿（代码侧） | ✅ |
 | Closeout 原子事务 + pending/failed 标记 + 启动恢复扫描 + 前端解除入口 | ✅ TECH-01/02 完成 |
 | HTTP Repository 层 + 路由按 entity 拆分（server.mjs ~85 行） | ✅ TECH-08/09 完成 |
-| 技术债地基（verify helpers → 架构拆分） | 🟡 TECH-04/05/06/01/02/08/09 完成；最后一波 TECH-10/03 |
+| 数据库按 entity 拆分（database.mjs ~89 行 + db/*.mjs） | ✅ TECH-10 完成 |
+| 技术债地基（verify helpers → 架构拆分） | 🟡 TECH-04/05/06/01/02/08/09/10 完成；最后一道 TECH-03 |
 | AI草稿流 prompt schema versioning | 🟡 AIREADY-02 next（白天） |
 | 真实 AI provider smoke | 🟡 等 AIREADY P1 完成 |
 
 ## 最近完成（最多 5 条；更长历史看 `git log --oneline`）
+- TECH-10 database.mjs 按 entity 拆分：新增 `apps/server/src/db/{constants,storage-error,validation,schema,lookups,workspace,issue,record,archive,errorEntry,formDraft,closeoutRecovery,search}.mjs`；database.mjs 从 1426 行瘦到 89 行（仅装配 entity ops 进 store）；store 外部形状不变
 - TECH-09 server.mjs 路由按 entity 拆分：新增 `routes/{version,health,workspaces,issues,records,archives,errorEntries,closeoutRecovery,formDrafts,search,ai}.mjs` + index 聚合 + `http/{responses,static,dispatcher}.mjs` + `config.mjs` + `closeoutRecoveryScan.mjs`；server.mjs 从 610 行瘦到 85 行
 - TECH-08 HTTP Repository 拆分：新增 `apps/server/src/repositories/{workspace,issue,record,archive,errorEntry,formDraft,closeoutRecovery,search}Repository.mjs` + `index.mjs`；server.mjs 路由全部改用 `repositories.<entity>.<method>`
 - TECH-02 closeout recovery：`listCloseoutRecovery` + `clearCloseoutState` + 启动扫描日志；GET/POST `/api/.../closeout-recovery` 路由；desktop `closeoutRecovery` repository 接口 + `CloseoutRecoveryPanel` UI 解除标记
 - TECH-01 closeout 原子事务：`closeoutIssue` 走 BEGIN IMMEDIATE / COMMIT / ROLLBACK；落 `issues.closeout_state` 标记位（pending/completed/failed）+ 部分索引；新增 POST `/api/.../issues/:id/closeout` 路由
-- TECH-06 server fixtures 模块（repoSnapshot/issue/record/archive/errorEntry）+ 3 server 脚本接入
