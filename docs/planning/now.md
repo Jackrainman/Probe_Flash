@@ -6,10 +6,10 @@
 mode: server_storage_migration
 stage: R1
 stage_goal: v0.3.0 已发布；P0 = 技术债地基加固（夜跑纯还债） + AI草稿流准备（白天主线）
-current_task: TECH-09-SERVER-ROUTE-SPLIT
+current_task: TECH-10-DATABASE-MODULE-SPLIT
 frontier:
-  - TECH-09-SERVER-ROUTE-SPLIT  # current, P0, night-safe, 依赖 TECH-08（已 done）
-  - TECH-10-DATABASE-MODULE-SPLIT  # pending, P0, night-safe, 独立无依赖
+  - TECH-10-DATABASE-MODULE-SPLIT  # current, P0, night-safe, 独立无依赖
+  - TECH-03-WORKSPACEID-CONSISTENCY-LATER  # pending, P0, 夜跑, 扫尾
   - AIREADY-02-PROMPT-SCHEMA-VERSIONING  # pending, P1, 白天主线, night-safe
 night_run: active  # TECH 链纯本地，无真实服务器/API key/sudo 依赖
 blocked:
@@ -21,17 +21,17 @@ post_0_3_registry:
 ```
 
 ## 当前任务
-- **TECH-09-SERVER-ROUTE-SPLIT**（P0，夜跑，night-safe；依赖 TECH-08 已 done）
-- 目标：把 server.mjs 内 20+ inline 路由按 entity 拆到 `apps/server/src/routes/<entity>.mjs`；server.mjs 退化为路由聚合器，瘦到 ~80 行。
-- 边界：只动 `apps/server/src/server.mjs` + 新建 `apps/server/src/routes/*.mjs`；不引入路由框架；保持现有 URL/method/响应 shape；不动 repositories（TECH-08 已落）。
-- 不做：database.mjs 拆分（TECH-10）、引入 express/fastify、修改 verify 链路。
-- DoD：每条路由按 entity 落对应文件；server.mjs 仅 import + 装配 + listen + 启动扫描；现有 verify 链 + closeout atomicity / recovery 全过；`git diff --check` 干净。
-- 验证：`cd apps/server && npm run verify:server-schema-contract && npm run verify:server-closeout-atomicity && npm run verify:server-closeout-recovery && npm run verify:s3-local-backend-scaffold && npm run verify:deploy-prep`；`cd apps/desktop && npm run typecheck && npm run build && npm run verify:all`；`git diff --check`。
+- **TECH-10-DATABASE-MODULE-SPLIT**（P0，夜跑，night-safe；独立无依赖）
+- 目标：1426 行 `apps/server/src/database.mjs` 按 entity 拆成 `apps/server/src/db/<entity>.mjs`（issues / records / archives / errorEntries / formDrafts / workspaces / closeout / search / schema），database.mjs 退化为协调器（schema setup + 子模块装配）。
+- 边界：只动 `apps/server/src/database.mjs` + 新建 `apps/server/src/db/*.mjs`；不改 store API（`createProbeFlashDatabase` 保留所有方法名签名 + 行为）；不动 routes/repositories；不引入 ORM。
+- 不做：拆 store 方法的语义、删 schema、引入新表/外键；TECH-03 workspaceId consistency 扫尾另走。
+- DoD：database.mjs 行数明显下降（< 200 行）；子模块每个 < 300 行；现有 verify 链全过；`createProbeFlashDatabase` 返回的 store 形状不变；`git diff --check` 干净。
+- 验证：`cd apps/server` 全量 verify:* + atomicity / recovery；`cd apps/desktop && npm run typecheck && npm run build && npm run verify:all`；`git diff --check`。
 
 ## 前沿候选（≤3）
-- TECH-10-DATABASE-MODULE-SPLIT（pending，P0，夜跑，独立无依赖）
-- AIREADY-02-PROMPT-SCHEMA-VERSIONING（pending，P1，白天主线，night-safe）
 - TECH-03-WORKSPACEID-CONSISTENCY-LATER（pending，P0，夜跑，扫尾）
+- AIREADY-02-PROMPT-SCHEMA-VERSIONING（pending，P1，白天主线，night-safe）
+- AIREADY-08-MOCK-PROVIDER（pending，P1，白天，night-safe）
 
 ## 阻塞 / 待拍板
 - REALAI-09 真实 DeepSeek key smoke：等用户 source env + AIREADY P1 完成（prompt schema 版本管理就绪后解）。
@@ -55,14 +55,14 @@ post_0_3_registry:
 | 搜索 / 标签 / 相似/复发提示 / 归档复盘 | ✅ |
 | AI-ready 草稿 / DeepSeek 结案草稿（代码侧） | ✅ |
 | Closeout 原子事务 + pending/failed 标记 + 启动恢复扫描 + 前端解除入口 | ✅ TECH-01/02 完成 |
-| HTTP Repository 层（per-entity 抽象） | ✅ TECH-08 完成 |
-| 技术债地基（verify helpers → 架构拆分） | 🟡 TECH-04/05/06/01/02/08 完成；下一波 TECH-09/10 |
+| HTTP Repository 层 + 路由按 entity 拆分（server.mjs ~85 行） | ✅ TECH-08/09 完成 |
+| 技术债地基（verify helpers → 架构拆分） | 🟡 TECH-04/05/06/01/02/08/09 完成；最后一波 TECH-10/03 |
 | AI草稿流 prompt schema versioning | 🟡 AIREADY-02 next（白天） |
 | 真实 AI provider smoke | 🟡 等 AIREADY P1 完成 |
 
 ## 最近完成（最多 5 条；更长历史看 `git log --oneline`）
-- TECH-08 HTTP Repository 拆分：新增 `apps/server/src/repositories/{workspace,issue,record,archive,errorEntry,formDraft,closeoutRecovery,search}Repository.mjs` + `index.mjs`；server.mjs 路由全部改用 `repositories.<entity>.<method>`，store 仅在 startup 持有用于 close()；现有 verify 链全过
-- TECH-02 closeout recovery：`listCloseoutRecovery` + `clearCloseoutState` + 启动扫描日志；GET/POST `/api/.../closeout-recovery` 路由；desktop `closeoutRecovery` repository 接口 + `CloseoutRecoveryPanel` UI 解除标记；新增 server `verify-server-closeout-recovery` + desktop `verify-data-closeout-recovery-ux`
-- TECH-01 closeout 原子事务：`closeoutIssue` 走 BEGIN IMMEDIATE / COMMIT / ROLLBACK；落 `issues.closeout_state` 标记位（pending/completed/failed）+ 部分索引；新增 POST `/api/.../issues/:id/closeout` 路由；`verify-server-closeout-atomicity.mjs` 覆盖 happy/validation rollback/conflict rollback/missing-issue 四档
+- TECH-09 server.mjs 路由按 entity 拆分：新增 `routes/{version,health,workspaces,issues,records,archives,errorEntries,closeoutRecovery,formDrafts,search,ai}.mjs` + index 聚合 + `http/{responses,static,dispatcher}.mjs` + `config.mjs` + `closeoutRecoveryScan.mjs`；server.mjs 从 610 行瘦到 85 行
+- TECH-08 HTTP Repository 拆分：新增 `apps/server/src/repositories/{workspace,issue,record,archive,errorEntry,formDraft,closeoutRecovery,search}Repository.mjs` + `index.mjs`；server.mjs 路由全部改用 `repositories.<entity>.<method>`
+- TECH-02 closeout recovery：`listCloseoutRecovery` + `clearCloseoutState` + 启动扫描日志；GET/POST `/api/.../closeout-recovery` 路由；desktop `closeoutRecovery` repository 接口 + `CloseoutRecoveryPanel` UI 解除标记
+- TECH-01 closeout 原子事务：`closeoutIssue` 走 BEGIN IMMEDIATE / COMMIT / ROLLBACK；落 `issues.closeout_state` 标记位（pending/completed/failed）+ 部分索引；新增 POST `/api/.../issues/:id/closeout` 路由
 - TECH-06 server fixtures 模块（repoSnapshot/issue/record/archive/errorEntry）+ 3 server 脚本接入
-- TECH-05 verify 脚本 tempdir 全量迁到 createTempDir（25 个脚本）+ s4 release 版本 fixture 修正
