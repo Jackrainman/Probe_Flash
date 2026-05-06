@@ -7,25 +7,25 @@ export const errorEntryRoutes = [
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)\/error-entries$/,
-    handle({ res, match, repositories }) {
-      ok(res, { items: repositories.errorEntry.list(decodeURIComponent(match[1])) });
+    handle({ res, match, store }) {
+      ok(res, { items: store.listErrorEntries(decodeURIComponent(match[1])) });
     },
   },
   {
     method: "POST",
     pattern: /^\/api\/workspaces\/([^/]+)\/error-entries$/,
-    async handle({ req, res, match, repositories }) {
+    async handle({ req, res, match, store }) {
       const payload = await readJson(req);
-      ok(res, repositories.errorEntry.create(decodeURIComponent(match[1]), payload), 201);
+      ok(res, store.createErrorEntry(decodeURIComponent(match[1]), payload), 201);
     },
   },
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)\/error-entries\/([^/]+)$/,
-    handle({ res, match, repositories }) {
+    handle({ res, match, store }) {
       ok(
         res,
-        repositories.errorEntry.get(decodeURIComponent(match[1]), decodeURIComponent(match[2])),
+        store.getErrorEntry(decodeURIComponent(match[1]), decodeURIComponent(match[2])),
       );
     },
   },

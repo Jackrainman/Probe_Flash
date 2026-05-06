@@ -117,6 +117,11 @@ function ensureExitHook(): void {
     }
     tempDirsPendingCleanup.clear();
   });
+  // process.on("exit") 不触发于 SIGINT/SIGTERM。补上信号 → process.exit 转译，
+  // 让中断（Ctrl+C / kill <pid>）也走 exit hook，避免 /tmp/probeflash-* 残留。
+  // 用 once + 标准 128+signo 退出码（SIGINT=130, SIGTERM=143），与 shell 约定一致。
+  process.once("SIGINT", () => process.exit(130));
+  process.once("SIGTERM", () => process.exit(143));
 }
 
 export interface TempDirHandle {

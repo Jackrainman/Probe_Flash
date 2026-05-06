@@ -7,7 +7,7 @@ import { apiRoutes } from "../routes/index.mjs";
 import { ensureStorageReady, fail, parseAppError, text } from "./responses.mjs";
 import { serveStaticRequest } from "./static.mjs";
 
-export function createRequestHandler({ repositories, storeInitError, staticDir, releaseMetadata }) {
+export function createRequestHandler({ store, storeInitError, staticDir, releaseMetadata }) {
   return async (req, res) => {
     const url = new URL(req.url ?? "/", "http://127.0.0.1");
     const method = req.method ?? "GET";
@@ -27,14 +27,14 @@ export function createRequestHandler({ repositories, storeInitError, staticDir, 
         const match = url.pathname.match(route.pattern);
         if (!match) continue;
         if (route.requiresStorage !== false) {
-          ensureStorageReady(repositories);
+          ensureStorageReady(store);
         }
         return await route.handle({
           req,
           res,
           url,
           match,
-          repositories,
+          store,
           releaseMetadata,
           storeInitError,
         });

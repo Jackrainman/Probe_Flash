@@ -1,7 +1,6 @@
 // apps/server/src/routes/ai.mjs
-// TECH-09: DeepSeek status + closeout-draft passthrough. Talks to repositories.issue
-// and repositories.record purely to read context for the prompt template — no
-// writes.
+// TECH-09: DeepSeek status + closeout-draft passthrough. Reads issue and record
+// context from the store for the prompt template — no writes.
 
 import { generateDeepSeekDraft, getDeepSeekStatus } from "../ai/deepseek-client.mjs";
 import {
@@ -21,7 +20,7 @@ export const aiRoutes = [
   {
     method: "POST",
     pattern: /^\/api\/workspaces\/([^/]+)\/ai\/closeout-draft$/,
-    async handle({ req, res, match, repositories }) {
+    async handle({ req, res, match, store }) {
       const workspaceId = decodeURIComponent(match[1]);
       const payload = await readJson(req);
       const request = normalizeAiCloseoutDraftRequest(payload);
@@ -30,8 +29,8 @@ export const aiRoutes = [
       }
       const prompt = buildAiPromptTemplate({
         task: request.task,
-        issue: repositories.issue.get(workspaceId, request.issueId),
-        records: repositories.record.list(workspaceId, request.issueId),
+        issue: store.getIssue(workspaceId, request.issueId),
+        records: store.listRecords(workspaceId, request.issueId),
         closeoutDraft: request.closeoutDraft,
       });
       const result = await generateDeepSeekDraft({ task: prompt.task, messages: prompt.messages });

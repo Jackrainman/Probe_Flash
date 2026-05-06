@@ -7,39 +7,39 @@ export const issueRoutes = [
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)\/issues$/,
-    handle({ res, url, match, repositories }) {
+    handle({ res, url, match, store }) {
       const workspaceId = decodeURIComponent(match[1]);
       const status = url.searchParams.get("status") ?? "active";
-      ok(res, { items: repositories.issue.list(workspaceId, status) });
+      ok(res, { items: store.listIssues(workspaceId, status) });
     },
   },
   {
     method: "POST",
     pattern: /^\/api\/workspaces\/([^/]+)\/issues$/,
-    async handle({ req, res, match, repositories }) {
+    async handle({ req, res, match, store }) {
       const workspaceId = decodeURIComponent(match[1]);
       const payload = await readJson(req);
-      ok(res, repositories.issue.create(workspaceId, payload), 201);
+      ok(res, store.createIssue(workspaceId, payload), 201);
     },
   },
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)\/issues\/([^/]+)$/,
-    handle({ res, match, repositories }) {
+    handle({ res, match, store }) {
       ok(
         res,
-        repositories.issue.get(decodeURIComponent(match[1]), decodeURIComponent(match[2])),
+        store.getIssue(decodeURIComponent(match[1]), decodeURIComponent(match[2])),
       );
     },
   },
   {
     method: "PUT",
     pattern: /^\/api\/workspaces\/([^/]+)\/issues\/([^/]+)$/,
-    async handle({ req, res, match, repositories }) {
+    async handle({ req, res, match, store }) {
       const payload = await readJson(req);
       ok(
         res,
-        repositories.issue.update(
+        store.updateIssue(
           decodeURIComponent(match[1]),
           decodeURIComponent(match[2]),
           payload,
@@ -50,11 +50,11 @@ export const issueRoutes = [
   {
     method: "POST",
     pattern: /^\/api\/workspaces\/([^/]+)\/issues\/([^/]+)\/closeout$/,
-    async handle({ req, res, match, repositories }) {
+    async handle({ req, res, match, store }) {
       const payload = await readJson(req);
       ok(
         res,
-        repositories.issue.closeout(
+        store.closeoutIssue(
           decodeURIComponent(match[1]),
           decodeURIComponent(match[2]),
           payload,

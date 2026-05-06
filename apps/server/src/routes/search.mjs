@@ -7,11 +7,11 @@ export const searchRoutes = [
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)\/search$/,
-    handle({ res, url, match, repositories }) {
+    handle({ res, url, match, store }) {
       const workspaceId = decodeURIComponent(match[1]);
       ok(
         res,
-        repositories.search.query(workspaceId, {
+        store.search(workspaceId, {
           query: url.searchParams.get("q") ?? "",
           limit: url.searchParams.get("limit") ?? undefined,
           kind: url.searchParams.get("kind") ?? undefined,

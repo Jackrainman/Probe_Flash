@@ -14,7 +14,9 @@
 //   - 不动 systemd / 真实服务器 / 4100 端口（默认 startProbeFlashServer port=0 不可设，覆盖 host+port 走随机）。
 //   - 验证完毕主动 close 服务器并 cleanup tempdir。
 
-import { join } from "node:path";
+import { spawnSync } from "node:child_process";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
 import { DatabaseSync } from "node:sqlite";
 
 import { startProbeFlashServer } from "../src/server.mjs";
@@ -421,11 +423,94 @@ try {
     },
   );
 
+  // ---- Test 5: SIGKILL during a closeout transaction must leave no partial writes ----
+  // Reproduces an OS-level kill (no JS / SQLite cleanup runs) by spawning a child that
+  // sets the 'pending' marker, opens BEGIN IMMEDIATE, INSERTs an archive row, then dies
+  // via SIGKILL before COMMIT. After the child dies we reopen the db from the parent and
+  // assert the archive INSERT was rolled back by SQLite (WAL discards uncommitted frames)
+  // and the 'pending' marker — autocommitted before the txn — survives.
+  //
+  // We seed a dedicated issue + close the server first so the child is the lone writer
+  // and there's no chance of contention with the still-running HTTP server's connection.
+  const crashIssue = issueFixture("issue-closeout-crash-0001");
+  const seedCrashIssue = await requestJson(
+    `${baseUrl}/api/workspaces/${WORKSPACE_ID}/issues`,
+    postJson(crashIssue),
+  );
+  assert(
+    seedCrashIssue.response.status === 201 && seedCrashIssue.payload.ok === true,
+    "seed crash-target issue should succeed",
+    seedCrashIssue.payload,
+  );
+
+  await server.close();
+  server = null;
+
+  const crashArchive = archiveFixture(crashIssue.id, "2026-04-28_issue-closeout-crash-0001.md");
+  const childScript = join(
+    dirname(fileURLToPath(import.meta.url)),
+    "internal",
+    "closeout-crash-child.mjs",
+  );
+  const child = spawnSync(process.execPath, [childScript], {
+    env: {
+      ...process.env,
+      PROBEFLASH_CRASH_DB_PATH: dbPath,
+      PROBEFLASH_CRASH_WORKSPACE_ID: WORKSPACE_ID,
+      PROBEFLASH_CRASH_ISSUE_ID: crashIssue.id,
+      PROBEFLASH_CRASH_ARCHIVE_FILE_NAME: crashArchive.fileName,
+      PROBEFLASH_CRASH_ARCHIVE_FILE_PATH: crashArchive.filePath,
+      PROBEFLASH_CRASH_GENERATED_AT: crashArchive.generatedAt,
+      PROBEFLASH_CRASH_ARCHIVE_PAYLOAD_JSON: JSON.stringify(crashArchive),
+    },
+    encoding: "utf8",
+  });
+  assert(
+    child.signal === "SIGKILL",
+    "crash child must terminate via SIGKILL (no graceful cleanup)",
+    { signal: child.signal, status: child.status, stdout: child.stdout, stderr: child.stderr },
+  );
+  assert(
+    typeof child.stdout === "string" && child.stdout.includes("READY_TO_CRASH"),
+    "crash child must reach the post-INSERT / pre-COMMIT crash point before being killed",
+    { stdout: child.stdout, stderr: child.stderr },
+  );
+
+  {
+    const inspector = new DatabaseSync(dbPath);
+    try {
+      const archiveRow = inspector
+        .prepare(
+          `SELECT file_name FROM archives WHERE workspace_id = ? AND issue_id = ?`,
+        )
+        .get(WORKSPACE_ID, crashIssue.id);
+      assertEqual(
+        archiveRow,
+        undefined,
+        "SIGKILL mid-transaction must not leave the archive INSERT visible (WAL must discard uncommitted frames)",
+      );
+
+      const markerRow = inspector
+        .prepare(
+          `SELECT closeout_state FROM issues WHERE workspace_id = ? AND id = ?`,
+        )
+        .get(WORKSPACE_ID, crashIssue.id);
+      assertEqual(
+        markerRow?.closeout_state,
+        "pending",
+        "SIGKILL mid-transaction must leave the autocommitted 'pending' marker intact for TECH-02 recovery",
+      );
+    } finally {
+      inspector.close();
+    }
+  }
+
   console.log("[SERVER-CLOSEOUT-ATOMICITY verify] PASS: schema bumps user_version >= 3 + adds closeout_state column + partial index");
   console.log("[SERVER-CLOSEOUT-ATOMICITY verify] PASS: happy path commits archive + error entry + archived issue with closeoutState=completed");
   console.log("[SERVER-CLOSEOUT-ATOMICITY verify] PASS: pre-mutation validation failure rolls back without partial writes or marker churn");
   console.log("[SERVER-CLOSEOUT-ATOMICITY verify] PASS: mid-transaction archive UNIQUE conflict rolls back + flips closeoutState=failed");
   console.log("[SERVER-CLOSEOUT-ATOMICITY verify] PASS: closeout on missing issue returns 404 without marker side-effects");
+  console.log("[SERVER-CLOSEOUT-ATOMICITY verify] PASS: SIGKILL mid-transaction discards uncommitted archive INSERT and leaves the pending marker for recovery");
 } catch (error) {
   fail("verify run threw unexpectedly", { error: error?.message ?? String(error), stack: error?.stack });
 } finally {

@@ -7,9 +7,9 @@ export const recordRoutes = [
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)\/issues\/([^/]+)\/records$/,
-    handle({ res, match, repositories }) {
+    handle({ res, match, store }) {
       ok(res, {
-        items: repositories.record.list(
+        items: store.listRecords(
           decodeURIComponent(match[1]),
           decodeURIComponent(match[2]),
         ),
@@ -19,11 +19,11 @@ export const recordRoutes = [
   {
     method: "POST",
     pattern: /^\/api\/workspaces\/([^/]+)\/issues\/([^/]+)\/records$/,
-    async handle({ req, res, match, repositories }) {
+    async handle({ req, res, match, store }) {
       const payload = await readJson(req);
       ok(
         res,
-        repositories.record.create(
+        store.createRecord(
           decodeURIComponent(match[1]),
           decodeURIComponent(match[2]),
           payload,

@@ -7,23 +7,23 @@ export const workspaceRoutes = [
   {
     method: "GET",
     pattern: /^\/api\/workspaces$/,
-    handle({ res, repositories }) {
-      ok(res, { items: repositories.workspace.list() });
+    handle({ res, store }) {
+      ok(res, { items: store.listWorkspaces() });
     },
   },
   {
     method: "POST",
     pattern: /^\/api\/workspaces$/,
-    async handle({ req, res, repositories }) {
+    async handle({ req, res, store }) {
       const payload = await readJson(req);
-      ok(res, { workspace: repositories.workspace.create(payload) }, 201);
+      ok(res, { workspace: store.createWorkspace(payload) }, 201);
     },
   },
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)$/,
-    handle({ res, match, repositories }) {
-      ok(res, repositories.workspace.get(decodeURIComponent(match[1])));
+    handle({ res, match, store }) {
+      ok(res, store.getWorkspace(decodeURIComponent(match[1])));
     },
   },
 ];

@@ -56,8 +56,8 @@ export async function readJson(req) {
   }
 }
 
-export function ensureStorageReady(repositories) {
-  if (repositories) return;
+export function ensureStorageReady(store) {
+  if (store) return;
   const error = new Error("storage is not ready");
   error.code = "SERVICE_UNAVAILABLE";
   throw error;

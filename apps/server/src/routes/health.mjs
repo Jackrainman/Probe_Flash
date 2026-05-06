@@ -9,7 +9,7 @@ export const healthRoutes = [
     method: "GET",
     pattern: /^\/api\/health$/,
     requiresStorage: false,
-    handle({ res, repositories, storeInitError, releaseMetadata }) {
+    handle({ res, store, storeInitError, releaseMetadata }) {
       if (storeInitError) {
         return json(res, 503, {
           ok: false,
@@ -23,7 +23,7 @@ export const healthRoutes = [
         });
       }
       return ok(res, {
-        ...repositories.workspace.health(),
+        ...store.health(),
         server: serverStatus(),
         release: releaseMetadata,
       });

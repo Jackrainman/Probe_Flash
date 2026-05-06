@@ -89,6 +89,10 @@ function ensureExitHook() {
     }
     tempDirsPendingCleanup.clear();
   });
+  // process.on("exit") 不触发于 SIGINT/SIGTERM。补上信号 → process.exit 转译，
+  // 让中断（Ctrl+C / kill <pid>）也走 exit hook。退出码 128+signo（SIGINT=130, SIGTERM=143）。
+  process.once("SIGINT", () => process.exit(130));
+  process.once("SIGTERM", () => process.exit(143));
 }
 
 export function createTempDir(prefix) {

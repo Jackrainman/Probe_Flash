@@ -9,7 +9,6 @@ export function applySchema(db, defaultWorkspace) {
   db.exec(`
     PRAGMA foreign_keys = ON;
     PRAGMA journal_mode = WAL;
-    PRAGMA user_version = ${SCHEMA_VERSION};
 
     CREATE TABLE IF NOT EXISTS schema_meta (
       key TEXT PRIMARY KEY,
@@ -150,4 +149,10 @@ export function applySchema(db, defaultWorkspace) {
     now,
     now,
   );
+
+  // Bump user_version *last*, only after every CREATE / ALTER / seed succeeded.
+  // Putting it inside the bulk exec at the top would mark the file as v${SCHEMA_VERSION}
+  // even if a later migration step (e.g. ALTER TABLE for closeout_state) failed,
+  // which would let the next boot skip re-trying the missing column.
+  db.exec(`PRAGMA user_version = ${SCHEMA_VERSION}`);
 }

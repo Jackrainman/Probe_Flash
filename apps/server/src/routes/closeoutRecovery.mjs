@@ -8,17 +8,17 @@ export const closeoutRecoveryRoutes = [
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)\/closeout-recovery$/,
-    handle({ res, match, repositories }) {
-      ok(res, { items: repositories.closeoutRecovery.list(decodeURIComponent(match[1])) });
+    handle({ res, match, store }) {
+      ok(res, { items: store.listCloseoutRecovery(decodeURIComponent(match[1])) });
     },
   },
   {
     method: "POST",
     pattern: /^\/api\/workspaces\/([^/]+)\/closeout-recovery\/([^/]+)\/clear$/,
-    handle({ res, match, repositories }) {
+    handle({ res, match, store }) {
       ok(
         res,
-        repositories.closeoutRecovery.clear(
+        store.clearCloseoutState(
           decodeURIComponent(match[1]),
           decodeURIComponent(match[2]),
         ),

@@ -9,7 +9,7 @@
 //   { method: "GET" | "POST" | "PUT" | "DELETE",
 //     pattern: RegExp,
 //     requiresStorage?: boolean = true,
-//     handle({ req, res, url, match, repositories, releaseMetadata, storeInitError }) }
+//     handle({ req, res, url, match, store, releaseMetadata, storeInitError }) }
 //
 // New entities should add their routes by creating a peer file under
 // apps/server/src/routes/<entity>.mjs and importing it here.

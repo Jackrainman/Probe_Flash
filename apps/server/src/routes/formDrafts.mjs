@@ -7,9 +7,9 @@ export const formDraftRoutes = [
   {
     method: "GET",
     pattern: /^\/api\/workspaces\/([^/]+)\/form-drafts\/([^/]+)\/([^/]+)$/,
-    handle({ res, match, repositories }) {
+    handle({ res, match, store }) {
       ok(res, {
-        draft: repositories.formDraft.get(
+        draft: store.getFormDraft(
           decodeURIComponent(match[1]),
           decodeURIComponent(match[2]),
           decodeURIComponent(match[3]),
@@ -20,11 +20,11 @@ export const formDraftRoutes = [
   {
     method: "PUT",
     pattern: /^\/api\/workspaces\/([^/]+)\/form-drafts\/([^/]+)\/([^/]+)$/,
-    async handle({ req, res, match, repositories }) {
+    async handle({ req, res, match, store }) {
       const payload = await readJson(req);
       ok(
         res,
-        repositories.formDraft.save(
+        store.saveFormDraft(
           decodeURIComponent(match[1]),
           decodeURIComponent(match[2]),
           decodeURIComponent(match[3]),
@@ -36,10 +36,10 @@ export const formDraftRoutes = [
   {
     method: "DELETE",
     pattern: /^\/api\/workspaces\/([^/]+)\/form-drafts\/([^/]+)\/([^/]+)$/,
-    handle({ res, match, repositories }) {
+    handle({ res, match, store }) {
       ok(
         res,
-        repositories.formDraft.delete(
+        store.deleteFormDraft(
           decodeURIComponent(match[1]),
           decodeURIComponent(match[2]),
           decodeURIComponent(match[3]),

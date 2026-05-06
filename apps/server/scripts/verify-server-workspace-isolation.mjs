@@ -379,17 +379,23 @@ try {
   );
 
   // ---- Cross-workspace PUT updateIssue must return NOT_FOUND ----
+  // Pin to 404 specifically: payload's projectId/id are rewritten to A so the
+  // validation layer cannot short-circuit with a 422; the only correct rejection
+  // is requireIssue(A, issueB.id) → NOT_FOUND.
   const crossUpdate = await requestJson(
     `${baseUrl}/api/workspaces/${DEFAULT_WORKSPACE_ID}/issues/${issueB.id}`,
     putJson({ ...issueB, projectId: DEFAULT_WORKSPACE_ID, title: "hijack attempt" }),
   );
   assert(
-    crossUpdate.response.status === 404 || crossUpdate.response.status === 422,
-    "cross-workspace PUT must reject (404 NOT_FOUND or 422 VALIDATION_ERROR)",
+    crossUpdate.response.status === 404 &&
+      crossUpdate.payload.error?.code === "NOT_FOUND",
+    "cross-workspace PUT must return 404 NOT_FOUND (issueB does not exist in workspace A)",
     crossUpdate.payload,
   );
 
   // ---- Cross-workspace closeout: targeting B's issue from workspace A must 404 ----
+  // Same logic as above: payload normalizers all see projectId=A so validation passes;
+  // the only correct rejection is requireIssue(A, issueB.id) → NOT_FOUND.
   const crossCloseout = await requestJson(
     `${baseUrl}/api/workspaces/${DEFAULT_WORKSPACE_ID}/issues/${issueB.id}/closeout`,
     postJson({
@@ -405,8 +411,9 @@ try {
     }),
   );
   assert(
-    crossCloseout.response.status >= 400,
-    "cross-workspace closeout must fail (will be 422 due to projectId mismatch or 404)",
+    crossCloseout.response.status === 404 &&
+      crossCloseout.payload.error?.code === "NOT_FOUND",
+    "cross-workspace closeout must return 404 NOT_FOUND (issueB does not exist in workspace A)",
     crossCloseout.payload,
   );
 
@@ -503,6 +510,77 @@ try {
   );
 
   // ---- Form draft DELETE scope: A cannot delete B's draft ----
+  // Specifically reuse the *same* (formKind, itemId) pair across both workspaces so the
+  // composite primary key (workspace_id, form_kind, item_id) is the only thing
+  // protecting B's row from A's DELETE. Anything weaker (e.g. dropping the
+  // workspace_id predicate from the DELETE) would silently nuke B here.
+  const sharedFormKind = "issue-intake";
+  const sharedItemId = "shared-isolation-itemid";
+  const sharedDraftA = formDraftPayload(
+    DEFAULT_WORKSPACE_ID,
+    sharedFormKind,
+    sharedItemId,
+    "shared draft owned by A",
+  );
+  const sharedDraftB = formDraftPayload(
+    workspaceBId,
+    sharedFormKind,
+    sharedItemId,
+    "shared draft owned by B",
+  );
+  for (const [workspaceId, draft, label] of [
+    [DEFAULT_WORKSPACE_ID, sharedDraftA, "sharedDraftA"],
+    [workspaceBId, sharedDraftB, "sharedDraftB"],
+  ]) {
+    const result = await requestJson(
+      `${baseUrl}/api/workspaces/${workspaceId}/form-drafts/${sharedFormKind}/${sharedItemId}`,
+      putJson(draft),
+    );
+    assert(
+      result.response.status === 200 && result.payload.ok === true,
+      `save ${label} should succeed`,
+      result.payload,
+    );
+  }
+
+  // DELETE A's shared draft via A's URL — must leave B's row at the same
+  // (formKind, itemId) coordinate completely untouched.
+  const deleteSharedFromA = await requestJson(
+    `${baseUrl}/api/workspaces/${DEFAULT_WORKSPACE_ID}/form-drafts/${sharedFormKind}/${sharedItemId}`,
+    deleteRequest(),
+  );
+  assert(
+    deleteSharedFromA.response.status === 200 && deleteSharedFromA.payload.ok === true,
+    "DELETE shared draft via A's path should succeed",
+    deleteSharedFromA.payload,
+  );
+
+  // A's shared draft is gone.
+  const sharedDraftAGone = await requestJson(
+    `${baseUrl}/api/workspaces/${DEFAULT_WORKSPACE_ID}/form-drafts/${sharedFormKind}/${sharedItemId}`,
+  );
+  assert(
+    sharedDraftAGone.payload.data.draft === null,
+    "after DELETE, A's shared draft must be gone",
+    sharedDraftAGone.payload,
+  );
+
+  // B's shared draft (same formKind, same itemId, different workspace) is preserved
+  // both as a draft and with its original payload — proving DELETE was workspace-bound.
+  const sharedDraftBStillThere = await requestJson(
+    `${baseUrl}/api/workspaces/${workspaceBId}/form-drafts/${sharedFormKind}/${sharedItemId}`,
+  );
+  assert(
+    sharedDraftBStillThere.payload.data.draft !== null,
+    "B's shared draft (same formKind+itemId pair) must persist after A's DELETE",
+    sharedDraftBStillThere.payload,
+  );
+  assertEqual(
+    sharedDraftBStillThere.payload.data.draft.payloadJson,
+    sharedDraftB.payloadJson,
+    "B's shared draft payload must remain unchanged after A's DELETE on the same coordinate",
+  );
+
   const crossDelete = await requestJson(
     `${baseUrl}/api/workspaces/${DEFAULT_WORKSPACE_ID}/form-drafts/${draftB.formKind}/${draftB.itemId}`,
     deleteRequest(),
@@ -551,6 +629,7 @@ try {
   console.log("[SERVER-WORKSPACE-ISOLATION verify] PASS: closeout-recovery list + clear scopes are workspace-bound");
   console.log("[SERVER-WORKSPACE-ISOLATION verify] PASS: search in workspace A never surfaces workspace B rows (and vice versa)");
   console.log("[SERVER-WORKSPACE-ISOLATION verify] PASS: form-draft DELETE is workspace-bound; cross-workspace DELETE leaves the other workspace untouched");
+  console.log("[SERVER-WORKSPACE-ISOLATION verify] PASS: form-draft DELETE on a shared (formKind, itemId) coordinate only deletes the caller's workspace row");
   console.log("[SERVER-WORKSPACE-ISOLATION verify] PASS: every per-entity table row references its declared workspace_id");
 } catch (error) {
   fail("verify run threw unexpectedly", { error: error?.message ?? String(error), stack: error?.stack });
