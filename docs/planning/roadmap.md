@@ -1,95 +1,85 @@
-# ProbeFlash 长期路线图
+# ProbeFlash 路线图（pivot 后）
 
-> 长期愿景与 8 主线骨架；不维护任务执行字段（current/pending/状态/依赖/优先级搬到 `backlog.md` 与 `now.md`）。完整 v0.3 前的字段化路线图与历史展开见 `docs/archive/pre-slim/product-roadmap.md`。
+> 长期愿景骨架；任务态字段在 `now.md` / `backlog.md`；长期决策在 `decisions.md`。pre-pivot 历史快照 → `docs/archive/v0.3-pivot/`，默认不读。
 
-## 0. 当前定位
+## 0. 当前定位（pivot 后）
 
-### 产品愿景
-ProbeFlash 是面向机器人 / 嵌入式战队调试现场的闭环软件：问题记录 → 排查过程组织 → 结案归档 → 错误表沉淀 → 历史问题检索 → AI 辅助措辞 / 总结 / 分析 → 代码上下文辅助定位 → 长期知识库。
+### 历史回顾
+ProbeFlash v0.3.0（2026-04 ~ 2026-05 初）已发布并冻结：本地 HTTP+SQLite + workspace + issue/record/closeout/archive/error-entry + 用户目录部署 + systemd 自启 + 全部技术债地基整波收完。作为完整作品 / 比赛交付物保留。
 
-### 当前已完成基座（v0.3.0 已发布）
-- 本地 HTTP + SQLite 主链路；workspace 创建 / 切换。
-- issue / record / closeout / archive / error-entry 主路径；草稿（四类表单）HTTP+SQLite 持久化 + localStorage fallback。
-- search / tags / archive review / similar issues lite / search result linking / recurrence prompt。
-- AI-ready prompt schema、rule-based closeout draft panel、DeepSeek 结案草稿最小链路（代码侧已完成，真实 key smoke 待用户）。
-- release tarball 部署、`/home/hurricane/probeflash` 用户目录部署 + systemd 自启（reboot 验证通过）；同端口 4100 服务 `dist` + `/api`；version / health endpoint 可读。
-- restore dry-run、SQLite integrity check、JSON export、partial closeout recovery、repair task generation、diagnostics bundle、night-run 安全规则、UI 信息架构 + 重排 + copy trim + quick issue layout 第一轮。
+### 形态判定
+v0.3 形态本质上是"跨组需求单"——为大组织异步协作 + 责任划分 + audit 设计的 issue tracker。但目标用户（机器人战队）是"小作坊"：5-15 人面对面工作，群里吼一声 / 私聊就能解决调试事件。**v0.3 没人主动用不是工程缺陷，是形态与场景的结构性错配。**
 
-### 当前主要阻塞
-- 真实 AI provider opt-in smoke（需用户本地 source DeepSeek env，AI 不读密钥文件）。
-- 数据备份/恢复仍需服务器路径下复验（DATA-01 进行中）。
+### Pivot 方向
+不再做单体 issue tracker。把"调试 + 协作 + 成长"按时间维度拆成三个独立 facet：
 
-## 1. Deployment / Operability
-**目标**：服务器稳定运行、可更新、可诊断。
+| 时间 | facet | 形态 | 数据 |
+|---|---|---|---|
+| **当下**（"我有问题，给我个检查单"） | **Skill** `debug-checklist` | Claude Code skill | 写入 `.debug-archive/*.md` |
+| **现在 / 即将**（"我们在做什么、等什么"） | **Bridge**（联调板） | 极简静态网页 / 打印 | `ROSTER.md` 或 `.bridge/*.md` |
+| **过去**（"前人怎么走过来的"） | **Trail**（足迹档案） | 静态 viewer（年鉴 / 翻阅）| 读 `.debug-archive/`（自动织）|
 
-- 已完成：release 用户目录部署、4100 同端口 Web+API、health/version 端点、systemd 自启 reboot 验证、release update / rollback runbook、最小 diagnostics bundle 设计。
-- 进行中：无（DEP 主线已通过近期 P0）。
-- 后续：实测 release 切换与回滚（DEP-08，等真实测试 release）；反向代理 / `.local` / HTTPS / 美化域名（长期）。
+**全部 markdown + git native，无 SQLite，无新 server。**
 
-## 2. Data Safety
-**目标**：数据不丢、可备份、可恢复。
+### 设计宪法（北极星）
+1. **填写的成本必须由当下回报抵消。** ProbeFlash v0.3 让人填"过去发生了什么"——填者当下不受益，所以没人填。新形态只允许"当下填、当下受益"的输入设计。
+2. **让协作摩擦可见，让产能不可比。** 显示"导航任务卡了 3 天，需要 RTOS 知识" ✓；显示"张三这周完成 5 个任务，李四完成 2 个" ✗。核心边界：信息能直接导向"谁需要帮" ✓，导向"谁干得少" ✗。GitHub PR review queue 是好的反例，contribution graph 是坏的反例。
+3. **小作坊优先**。不抢占大组织 ticketing 形态；不引入责任划分 / audit / 多租户 / 权限。
+4. **AI 是转译器**——把老学长的隐式经验转成新人能照着走的清单；不替代真实硬件验证。
 
-- 已完成：本地 backup/export/restore dry-run、SQLite integrity check、partial closeout recovery、repair task generation。
-- 进行中：服务器 `shared/data` 路径下备份/恢复复验（DATA-01 → DATA-03）。
-- 后续 / 拍板：备份保留策略（DATA-06）、恢复 apply runbook（DATA-07）。
+## 1. Skill — `debug-checklist`
 
-## 3. Core Debug Workflow
-**目标**：现场记录和结案更快、更顺。
+**目标**：一句话症状 → 5-8 条带依据和验证动作的检查清单；可选写入 `.debug-archive/`。
 
-- 已完成：quick issue create、record timeline polish、closeout UX polish、closeout partial save hints、recent issue reopen、workspace UX improvements、CORE-FORM-DRAFT-SERVER-PERSISTENCE、closeout continuation UX、追记 sibling key namespace fix。
-- 后续：archive filters、error entry tags、demo seed import；附件接入（截图 / 波形 / 串口日志 / CAN / ROS topic）属长期方向。
+- 当前：v0.0.1 已落地于 `.agents/skills/debug-checklist/SKILL.md`，自用为主。
+- 后续：基于备赛期 dogfood 反馈调 prompt；archive 攒到 ≥20 条后引入"历史相似症状关联"。
+- 不做：依赖 ProbeFlash server / SQLite / IssueCard 任何前置条件。
 
-## 4. Search / Knowledge Base
-**目标**：历史问题能找回、能复用。
+## 2. Bridge — 联调板（备赛后启动）
 
-- 已完成：basic full-text search、filters、tags、archive review page、similar issues lite、search result linking、recurrence prompt。
-- 后续 / 拍板：错误码分类法（SEARCH-05）、标签治理与合并（SEARCH-06）。
-- 长期：模块级故障模式统计、归档报告 PDF/HTML 导出、周报 / 复盘报告生成、轻量索引 / RAG / embedding（在 repo connector allowlist 成熟后再评估）。
+**目标**：把"我做什么 / 我被什么卡住 / 谁需要帮"做成可见的极简看板，让小作坊的 interface coordination 不再依赖微信群和白板。
 
-## 5. AI-ready Workflow
-**目标**：先把 AI 草稿流和 prompt schema 做稳，不依赖真实 API。
+- 当前：未启动。备赛后启动。
+- 第一步：`docs/bridge/ROSTER.schema.md` 起一份 markdown schema，**打印贴墙试用**——队员对着它说话才电子化。
+- 关键风险：仍然要人填——但填的内容是"我下周做啥 + 卡在哪"，受益人是填写者本人（不被反复打扰、看见瓶颈、跟队长 sync）——满足设计宪法 #1。
+- 阻塞可见扩展：不只显示"谁在等谁"，还显示"什么任务卡住了、需要什么技能"。让简单任务的人可以主动去帮卡住的人，而不是队长逐个问。
+- 不做：人与人比产能的排名、绩效统计、责任追究、审计。
 
-- 已完成：prompt templates、rule-based closeout draft panel、draft history、本地规则降级路径。
-- 后续（night-safe）：prompt schema versioning、golden draft fixtures、draft diff、apply safety、mock provider、no-API-key UX、prompt preview export。
+## 3. Trail — 足迹档案（archive 数据足够后启动）
 
-## 6. Real AI Assistance
-**目标**：真实 AI 帮助优化措辞、总结排查、建议预防。
+**目标**：让 `.debug-archive/` + 个人日报沉淀的 markdown 自动织成"我们这一年的样子"——按人、按模块、按时间可读，给学弟学妹参考。
 
-- 已完成（代码侧）：provider abstraction、server env API key boundary、timeout/error state、polish closeout、DeepSeek closeout draft minimal integration。
-- 阻塞：summarize records / suggest prevention / user review before apply / draft audit metadata 全部等真实 provider opt-in smoke（REALAI-09）；AI key 只走 server env，AI 不读密钥文件，不直接写库。
-- post-0.3 备案：`AI-DRAFT-DEEPSEEK-SCHEMA-GUARD`（task/schema mismatch fallback verify）。
+- 当前：等 archive 数据先长出来再做（archive 没原料，Trail 没意义）。
+- 形态：静态 viewer，读 git 仓库，三种视图：
+  - **个人足迹**：某队员一段时间的调试轨迹 + 每周干了啥
+  - **模块史**：某模块（视觉 / 电控 / 运动）历年踩坑与突破
+  - **赛季年鉴**：自动生成的"这个赛季的故事"
+- **主动产出**：不只是被动翻阅。支持自动生成"这周干了啥"的个人摘要——直接回答老师/学长问话。来源 = debug 记录 + 个人日报/周报 skill 存档。
+- 可能复用：v0.3 网页 UI 退役改造为只读 markdown viewer——但要等 Trail 真有原料再决定。
 
-## 7. Code Context Analysis
-**目标**：AI 能基于用户显式提供的代码上下文分析问题。
+## 4. ProbeFlash v0.3 — 已冻结
 
-- 后续（night-safe）：bundle CLI、secrets protection、bundle schema fixtures、attach bundle to issue、bundle viewer、bundle size error handling。
-- 阻塞：CODECTX-07-AI-ANALYZE-EXPLICIT-BUNDLE 等真实 AI 通路。
-- 拍板：repo connector allowlist（CODECTX-08）、connector audit denylist（CODECTX-09）；server 不任意扫仓库是硬约束。
+- **状态**：v0.3.0 作为完整作品 / 比赛交付物保留。
+- **不做**：不再加功能、不修非阻塞 bug、不重构、不 polish、不写新 verify。
+- **可做**：发现致命安全 / 数据破坏问题时打补丁。
+- **未来一种可能**：网页代码退役为 Trail 的 markdown viewer——但要等 Trail 真有原料再决定。
 
-## 8. Technical Debt / Architecture
-**目标**：避免越跑越石山。
+## 备赛期约束（2026 春-夏）
 
-- 已完成：App.tsx 最小拆分（TECH-07）、行为保持的 UI 模块化拆分（UI-MOD-01）。
-- 后续（night-safe）：closeout atomicity 设计 / recovery、workspaceId consistency、verify helpers、verify tmp cleanup、smoke fixture consolidation、HTTP repository split / server route split / database module split（仅在具体 storage / server 任务命中它们时优先）。
-
-## 9. UI 改造（受控小阶段，stage gate driven）
-**目标**：把 UI 改造拆成可暂停的小阶段，每个阶段都有人工 review gate。
-
-- 已完成：UI-01 信息架构 → UI-GATE-01 visual direction → TECH-07 → UI-GATE-02 → UI-MOD-01 行为保持拆分 → UI-GATE-03 run check → UI-RELAYOUT-01 第一轮 → UI-GATE-04 → UI-POLISH-02 copy trim → UI-GATE-05 → UI-POLISH-03 quick issue landing layout。
-- 当前 gate：UI-GATE-06-MANUAL-QUICK-ISSUE-LAYOUT-REVIEW（必须等用户人工检查桌面/移动端观感后才允许继续）。
-- 后续：在 UI-GATE-06 通过后再决定是否进入下一轮 polish；不引入组件库或 broad CSS reset。
-
-## 长期方向
-- 团队级多项目知识库与轻量权限。
-- 串口日志 / CAN 报文 / ROS topic / 截图 / 照片 / 波形附件接入。
-- repo connector allowlist 成熟后评估轻量索引 / RAG / embedding。
-- 归档报告 PDF/HTML 导出、周报 / 复盘报告生成。
-- 模块级高频故障模式统计与预防清单。
-- 更完整的局域网部署体验：反向代理、`.local`、HTTPS、美化域名。
+- 主推进者本人在备赛，这不是产品主投入期。
+- 当前唯一允许的事：**自用 skill v0.0.1 + dogfood 记录**。
+- Bridge / Trail 不在备赛期窗口；备赛后再启。
+- v0.3 stack 不动。
+- 不找战队配合；自验证为主。
+- **冷静期 48-72h 规则**：决定写代码之前，让判断在脑子里沉两天再动；不冲动开新坑。
 
 ## 当前不做（硬约束）
-- 不创建独立 console / dashboard app；不把项目管理 UI 塞进 ProbeFlash 本体。
-- 不引入 RAG / embedding 作为第一步；不做权限系统、多租户、公网暴露。
-- 不做 Electron / preload / fs / IPC；`.debug_workspace` 文件写盘不在当前主线。
-- 不抢占服务器 80 端口；不升级系统全局 Node；不影响 filebrowser / vnt-cli / docker / Portainer。
-- 不读取、搜索、打印、总结或提交真实 API key；真实 provider smoke 只能由用户本地执行。
+
+- 不再加 issue tracker / closeout / workflow 类功能。
+- 不写 server / SQLite / API（v0.3 之外）。
+- 不做权限系统、多租户、人与人比产能的排名、绩效统计。任务阻塞可见（"这个任务卡了"）不属于此列。
+- 不做 RAG / embedding / 向量库。
+- 不做 Electron / fs / IPC。
+- 不抢占服务器 80 端口；不依赖系统全局 Node。
+- 不读 / 搜索 / 提交真实 API key。
+- 不依赖学校战队配合作为产品验证（备赛期不能要求别人投入）。
