@@ -47,26 +47,9 @@ frozen:
   - 企业内部应用 vs 第三方应用的权限差异？
 - 产出：飞书能力评估报告，决定哪些数据走飞书、哪些留本地
 
-## 架构定位更新（2026-05-15）
+## 架构定位（2026-05-15）
 
-**新定位：ProbeFlash = 中央处理枢纽，飞书 = 输入数据源 + 通知层**
-
-```
-飞书生态                    ProbeFlash                    输出
-─────────────────────────────────────────────────────────────────
-群聊消息 (@、调试描述)  →   Skill: debug-checklist   →   检查单（回飞书）
-                           ↓
-                    .debug-archive/*.md
-                           ↓
-多维表格（人员状态）    →   Bridge: 阻塞匹配算法      →   配对建议（回飞书）
-                           ↓
-                    docs/trail/年鉴视图
-```
-
-**关键改变**：
-1. 不再追求"纯 markdown + 无 server"，改为"轻量 server 仅做飞书对接"
-2. 微信数据接入难度高 → 放弃，专注飞书生态
-3. 今年验证：飞书消息 → ProbeFlash 处理 → 飞书回复 的闭环
+ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 `roadmap.md` §0。改动要点：放弃微信接入；允许轻量 server 仅做飞书对接；今年验证目标 = "飞书消息 → ProbeFlash 处理 → 飞书回复" 闭环。
 
 ## 阻塞 / 待拍板
 
@@ -81,29 +64,15 @@ frozen:
 
 ## 安全边界（pivot 后仍生效）
 
-- 不动 ProbeFlash v0.3 现有 server / SQLite / API。
-- AI / Skill 不读 `.env` / `*key*` / `*secret*`；不打印密钥。
-- 备赛期不夜跑；自用为主，不批量推进。
-- v0.3 出致命问题再打补丁，否则不回头。
-- 冷静期 48-72h：写代码前让判断沉两天，不冲动开新坑。
-
-## 能力速览（pivot 后）
-
-| 能力 | 状态 |
-|---|---|
-| ProbeFlash v0.3 完整产品（含部署 / systemd / verify 全套） | ✅ 冻结 |
-| Skill: `debug-checklist` v0.0.1 | 🟢 已落地，自用喂养中 |
-| Skill: `personal-daily-summary` v0.0.1 | 🟢 已落地，备赛期可用 |
-| Skill: `pre-match-checklist` v0.0.1 | 🟢 已落地，赛前可用 |
-| Flybook Agent 架构设计 | ⏳ LARK-01 待启动 |
-| Flybook API 能力调研 | ⏳ LARK-02 待启动 |
-| Bridge / 联调板（飞书集成版） | ⏸️ 等 LARK-02 完成 |
-| Trail / 足迹档案 | ⏸️ 等 archive 数据积累 |
+- 不动 v0.3 server / SQLite / API（致命补丁除外）。
+- AI / Skill 不读 / 打印密钥（`.env` / `*key*` / `*secret*`）。
+- 备赛期不夜跑；自用为主。
+- 冷静期 48-72h：写代码前让判断沉两天。
 
 ## 最近完成（详见 `git log`）
 
+- 2026-05-17 planning 文档瘦身：`now.md` / `roadmap.md` 移除冗余图与状态表（默认读取链 -18%）；新建 `docs/planning/visuals.md` 集中可视化材料（按需读取、显式更新）；AGENTS.md §2 加约束。
 - 2026-05-15 架构定位更新：确定 ProbeFlash 为中央枢纽、飞书为数据层的架构方向
 - 2026-05-15 新增 skill：`pre-match-checklist` v0.0.1 落地，覆盖赛前检查单场景
 - 2026-05-15 STM32 问题归档：uart-idle/systick/heap 三经典陷阱入库
 - 2026-05-10 方向复核讨论：三层诉求（个人周总结 / 团队阻塞可见 / 调试闭环）映射到三 facet（Trail / Bridge / Skill）；设计宪法 #2 明确为"阻塞可见但不比产能"。
-- 2026-05-07 pivot 决策落地：planning 全部重写；pre-pivot 历史快照到 `docs/archive/v0.3-pivot/`；`decisions.md` 追加 D-018。

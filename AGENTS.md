@@ -7,6 +7,7 @@
 
 ## 2. Workspace Rules
 - `docs/planning/`：唯一当前战况源 = `now.md`；候选池 = `backlog.md`；长期 ADR = `decisions.md`；长期愿景 = `roadmap.md`。这 4 份是 AI 默认读取链。
+- `docs/planning/visuals.md`：可视化参考（中央枢纽 / 数据流 / 能力速览等图表）。**不在默认读取链**；仅在需要查图时按需读取；**仅在用户明确要求"更新可视化文档"时修改**。
 - `docs/product/`：产品定义、领域语言、长期能力方向。仅在产品定义变化时读取。
 - `docs/archive/`：历史归档（含 `pre-slim/` 瘦身前文档与 `v0.2-closeout/`），默认不读，仅在历史追溯命中时读取。
 - `.agents/skills/`：可执行流程规则；权威源；一个 skill 只做一件事。
