@@ -71,8 +71,8 @@ ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 
 
 ## 最近完成（详见 `git log`）
 
+- 2026-05-17 软件工程复用 review 归档 `docs/archive/reviews/2026-05-17-se-review.md`（飞书 SDK / Hono / Quartz / monorepo / workflow protocol 归档等 10 条建议；用户态度待回填，未触发任何实施）。
 - 2026-05-17 planning 文档瘦身：`now.md` / `roadmap.md` 移除冗余图与状态表（默认读取链 -18%）；新建 `docs/planning/visuals.md` 集中可视化材料（按需读取、显式更新）；AGENTS.md §2 加约束。
 - 2026-05-15 架构定位更新：确定 ProbeFlash 为中央枢纽、飞书为数据层的架构方向
 - 2026-05-15 新增 skill：`pre-match-checklist` v0.0.1 落地，覆盖赛前检查单场景
 - 2026-05-15 STM32 问题归档：uart-idle/systick/heap 三经典陷阱入库
-- 2026-05-10 方向复核讨论：三层诉求（个人周总结 / 团队阻塞可见 / 调试闭环）映射到三 facet（Trail / Bridge / Skill）；设计宪法 #2 明确为"阻塞可见但不比产能"。
