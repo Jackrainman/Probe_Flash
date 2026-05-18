@@ -5,7 +5,7 @@
 ## 认领规则（pivot 后）
 
 1. 每次只认领一个原子任务，未 commit 不进入下一任务。
-2. 备赛期只允许 SKILL 类自用任务；BRIDGE / TRAIL 都 pending 到备赛后。
+2. 备赛期允许的任务类型：**SKILL 自用任务 + LARK 飞书接入**（飞书接入是 `now.md.stage_goal` 之一，gemini 已完成 API 调研）；BRIDGE / TRAIL 仍 pending 到备赛后。
 3. ProbeFlash v0.3 已冻结：不再认领 TECH / AIREADY / REALAI / CODECTX / DEP / DATA / UI / CORE / SEARCH 任务；致命补丁除外。
 4. 冷静期：决定写代码前让判断沉 48-72h，不冲动开新坑。
 5. 候选池只在本文件；`roadmap.md` 不构成候选源。若 `now.md` frontier 项在本文件无对应行，视为脱节，必须先补本文件再认领；不允许"凭空 frontier"。
@@ -14,10 +14,21 @@
 
 | 任务 | 状态 | type | 内容 |
 |------|------|------|------|
-| SKILL-01-DEBUG-CHECKLIST-V0_0_1 | done | skill | 已落地 v0.0.1 于 f5df2bf；DoD = SKILL.md 落地 + verify:skills-sync 通过（已闭环） |
-| SKILL-02-DOGFOOD-NOTE | pending | docs | 起 `docs/dogfood/` 目录；备赛期每次用 / 没用都写 1-3 行；30 天后回看 |
-| SKILL-03-PROMPT-ITERATION | pending | skill | 基于 dogfood 数据调 SKILL.md 的 prompt 模板；只动 SKILL.md，不动其他 |
-| SKILL-04-PERSONAL-DAILY-SUMMARY | done | skill | 已落地 v0.0.1 于 93dc7d0；DoD = SKILL.md 落地 + verify:skills-sync 通过（已闭环） |
+| SKILL-01-DEBUG-CHECKLIST-V0_0_1 | done | skill | 已落地 v0.0.1 于 `f5df2bf`；DoD = SKILL.md 落地 + verify:skills-sync 通过（已闭环） |
+| SKILL-02-DOGFOOD-NOTE | done | docs | 目录 + 模板已落地于 `f5df2bf`（`docs/dogfood/README.md`）；DoD = `test -f docs/dogfood/README.md`（已闭环）。"每次写 1-3 行"是行为非任务、"30 天后回看"是产品观察非工程谓词，按 M2 均不入原子任务 DoD |
+| SKILL-03-PROMPT-ITERATION | pending（dogfood ≥ 30 天） | skill | 基于 dogfood 数据调 SKILL.md 的 prompt 模板；只动 SKILL.md，不动其他 |
+| SKILL-04-PERSONAL-DAILY-SUMMARY | done | skill | 已落地 v0.0.1 于 `93dc7d0`；DoD = SKILL.md 落地 + verify:skills-sync 通过（已闭环） |
+| SKILL-05-PRE-MATCH-CHECKLIST | done | skill | 已落地 v0.0.1 于 `9beb907`；DoD = SKILL.md 落地 + verify:skills-sync 通过（已闭环） |
+
+## P0 — LARK 飞书接入（备赛期 stage_goal 之一）
+
+| 任务 | 状态 | type | 内容 |
+|------|------|------|------|
+| LARK-02-CAPABILITY-MIRROR | pending | research | 把用户已委托 gemini 完成的两份飞书 API 能力调研报告（用户本地 `~/Downloads/`）摘到 `docs/research/lark-api-capability.md`；`decisions.md` 追 D-020 结论"飞书 API 能力边界与限制"；DoD = `test -f docs/research/lark-api-capability.md` + `grep -q "^status:" ...` + decisions D-020 行存在 |
+| LARK-OSS-SCAN | pending | research | 调研开源飞书 SDK / gateway 候选（license 友好 + 维护活跃 + 与 Node/TS 栈兼容）；产出 `docs/research/lark-oss-candidates.md`；为路径决策提供输入 |
+| LARK-PATH-DECISION | decision-needed | docs | 基于 LARK-02 + LARK-OSS-SCAN 产出，在 `decisions.md` 追 D-021 ADR：路径 A（用开源仓库）vs 路径 B（自写最小 gateway，复用 `docs/superpowers/plans/2026-05-16-lark-gateway.md` 改 status: in_progress） |
+| LARK-01-CONNECTOR-ARCH | pending（待 PATH-DECISION） | design | 飞书 agent 与 ProbeFlash 的接口设计；产出 `docs/design/lark-connector.md`；触发条件 = PATH-DECISION 完成 |
+| LARK-03-MIN-INTEGRATION | pending（待 LARK-01 + 飞书企业内部应用注册） | code | 跑通"飞书消息 → ProbeFlash → 飞书回复"最小闭环；@机器人"调试底盘电机不转"→ 返回 debug-checklist 输出 |
 
 ## P1 — Bridge（备赛后启动）
 
