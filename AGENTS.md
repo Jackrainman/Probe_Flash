@@ -10,7 +10,8 @@
 - `docs/planning/`：唯一当前战况源 = `now.md`；候选池 = `backlog.md`；长期 ADR = `decisions.md`；长期愿景 = `roadmap.md`。这 4 份是 AI 默认读取链。
 - `docs/planning/visuals.md`：可视化参考（中央枢纽 / 数据流 / 能力速览等图表）。**不在默认读取链**；仅在需要查图时按需读取；**仅在用户明确要求"更新可视化文档"时修改**。
 - `docs/archive/`：历史归档（含 `pre-slim/`、`v0.2-closeout/`、`v0.3-pivot/`；v0.3 产品介绍与领域模型图均已归档至 `v0.3-pivot/product/`），默认不读，仅在历史追溯命中时读取。pivot 后产品定义在 `roadmap.md §0` + `decisions.md D-018/D-019`。
-- `.agents/skills/`：可执行流程规则；权威源；一个 skill 只做一件事。
+- `.agents/skills/`：可执行流程规则；权威源；一个 skill 只做一件事。**只放当前 active 触发面的 skill。**
+- `.agents/skill-library/`：v0.3 退役但保留追溯价值的 skill 冷藏架；**不**被 `.agents/hooks/sync-skills.sh` 同步、**不**进 Claude Code 触发面。复活路径见 `.agents/skill-library/README.md`。
 - `.debug-archive/`：Skill 产出的 debug 归档 markdown(本地活跃,`.gitignore` 覆盖,不入库);Trail 未来的数据源。
 - `README.md`：对外门面，不是内部事实源。
 - 禁止把临时思考散落到仓库根目录或无关路径。
@@ -65,8 +66,9 @@
 - 唯一权威源：`.agents/skills/<name>/SKILL.md`，由 Codex / OpenCode / Claude Code 三方共用。
 - `.claude/skills/` 是 Claude Code 读取镜像，由 `.agents/hooks/sync-skills.sh`（PostToolUse hook）在 Edit/Write 命中 `.agents/skills/**` 时自动复制；**禁止手动编辑 `.claude/skills/`**。
 - 新增 skill：在 `.agents/skills/<new-name>/SKILL.md` 创建即可（用 Edit/Write 工具触发 hook；用 vim/shell 重定向后需手动 `cp -rp .agents/skills/. .claude/skills/`）。
-- 删除 skill：删 `.agents/skills/<name>/` 后**必须**手动 `rm -rf .claude/skills/<name>`；hook 只复制不删。
-- 漂移哨兵：`cd apps/desktop && npm run verify:skills-sync`（也含在 `verify:all`）；不一致 exit 非零并提示修复命令。
+- 删除 skill：删 `.agents/skills/<name>/` 后**必须**手动 `rm -rf .claude/skills/<name>`；hook 只复制不删。`.claude/skills/` 在 Claude Code sandbox 的 denyWithinAllow 列表里，需用 `dangerouslyDisableSandbox: true` bypass 一次。
+- **退役而非删除**：把 v0.3 时代或不再 active 但有保留价值的 skill 从 `.agents/skills/` `git mv` 到 `.agents/skill-library/`；library 不被 hook 同步、不被 `verify:skills-sync` 检查、不进 Claude 触发面。详细操作见 `.agents/skill-library/README.md`。
+- 漂移哨兵：`cd apps/desktop && npm run verify:skills-sync`（也含在 `verify:all`）；不一致 exit 非零并提示修复命令。哨兵只比对 `.agents/skills/` ↔ `.claude/skills/`，**不**扫 `.agents/skill-library/`。
 - sandbox 设计史与详细原理（为什么不能 symlink、bwrap EISDIR、hardlink VS Code rename 漂移、PostToolUse 在沙箱外执行）见 `docs/archive/pre-slim/status.md` §9-§18；本节只是操作纪要。
 
 ## 10. Truthfulness
