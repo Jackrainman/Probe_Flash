@@ -51,3 +51,26 @@ description: 读真实状态 → 选唯一原子任务 → 执行 → 验证 →
 - `completionGate = blocked` 时禁止选下一任务；必须先解决 gate。
 - 架构类任务若只有分析结论、没有工程化验证结果，一律视为未完成。
 - 不恢复已硬删除的弱化文档；交接状态只写 `now.md`。
+- **候选池闭口（M1）**：选 frontier / current_task 时，候选池**只在 `docs/planning/backlog.md`**；不读 `roadmap.md` 找候选；不从 `now.md` 现有 frontier 之外的位置自由发散。若 `now.md` 的 frontier 项在 `backlog.md` 没有对应行，视为脱节，**必须先补 backlog 再认领**；不允许"凭空 frontier"。
+- **DoD 工程谓词（M2）**：认领任务时，必须按 `backlog.md` 里的 `type` 字段查 `## DoD type 对照表` 确认 DoD 形式合法。DoD 必须至少包含 1 条工程谓词（文件存在 / 命令 exit 0 / grep 命中 / schema safeParse 通过 / yaml 可解析）。"积累 N 条 / 用过 N 次 / 了解了 X / 对齐了 Y / 沉淀价值"这类不可机器验证描述**不构成 DoD**；遇到这类 DoD，视为非原子任务，**拒认领**并退回用户重新定义。
+- **commit 误提交自检（M3）**：在 `git commit` 之前必须跑 `git diff --cached --stat`，扣除自动生成内容（`*.lock` / `dist/` / `build/` 等），算出净改动行数。若净行数 > **1000**，触发误提交自检：(1) 扫描 `git diff --cached --name-only` 输出，匹配高置信度模式（`node_modules/` / `dist/` / `build/` / `.next/` / `.nuxt/` / `.cache/` / `*.log` / `*.tmp` / `*.pyc` / `__pycache__/` / `.DS_Store` / `Thumbs.db` / `.env*`（除 `.env.example` / `.env.template`）/ `*.swp` / `*.swo` / >= 5 MB 二进制）；命中则自动追加 `.gitignore` + `git rm --cached <files>` + 复核后正常 commit。(2) 命中低置信度模式（>500KB / 异常资产）→ 停下询问用户。(3) 全部正常 → 直接 commit，不需要任何特殊标签。1000 行只是触发自检的阈值，**不是 commit 上限**；自检通过的大 commit 一律放行。
+
+## DoD type 对照表
+
+`backlog.md` 中每个任务都标注一个 `type` 字段；认领任务时按下表查 DoD 必须形式。
+
+| type | DoD 必含 | 验证命令样例 |
+|---|---|---|
+| code | 代码文件落地 + 任务对应 verify 通过 | `cd apps/X && npm run verify:Y`（exit 0） |
+| skill | `.agents/skills/X/SKILL.md` 落地 + `verify:skills-sync` 通过 | `cd apps/desktop && npm run verify:skills-sync`（exit 0） |
+| design | `docs/design/X.md` 落地 + 在 `decisions.md` 追加 ADR 或文档自标 `status: forward-looking` | `test -f docs/design/X.md && grep -q "^status:" docs/design/X.md`（exit 0） |
+| research | `docs/research/X.md` 落地 + 在 `decisions.md` 追加 1 条结论 | 同 design 形式 |
+| docs | `git diff --check` 干净 + yaml 可解析 + grep 旧路径无残留 | `git diff --check`；`python3 -c "import yaml; yaml.safe_load(open('X').read())"` |
+| forward-looking | 单文档 + 自标 `status: forward-looking` + 自写激活条件 | `grep -q "status: forward-looking" docs/X.md`（exit 0） |
+| misc | 任务认领时**明确写出**至少 1 条工程谓词式 DoD 与对应验证命令 | 任务级声明（由认领者填） |
+
+**规则**（与 `## rules` 段 M2 互引）：
+
+- DoD 形式不符合表中任一行的任务，视为非原子任务，AI **拒认领**
+- 类型枚举可扩展；新增类型必须同时在本表和 backlog.md 出现
+- `misc` 是兜底，应该尽量避免；统计 misc 出现率超 2 个不同案例时考虑新增类型

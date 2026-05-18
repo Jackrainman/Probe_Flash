@@ -8,33 +8,34 @@
 2. 备赛期只允许 SKILL 类自用任务；BRIDGE / TRAIL 都 pending 到备赛后。
 3. ProbeFlash v0.3 已冻结：不再认领 TECH / AIREADY / REALAI / CODECTX / DEP / DATA / UI / CORE / SEARCH 任务；致命补丁除外。
 4. 冷静期：决定写代码前让判断沉 48-72h，不冲动开新坑。
+5. 候选池只在本文件；`roadmap.md` 不构成候选源。若 `now.md` frontier 项在本文件无对应行，视为脱节，必须先补本文件再认领；不允许"凭空 frontier"。
 
 ## P0 — Skill 自用闭环（备赛期窗口）
 
-| 任务 | 状态 | 内容 |
-|------|------|------|
-| SKILL-01-DEBUG-CHECKLIST-V0_0_1 | current | 在 `.agents/skills/debug-checklist/SKILL.md` 写第一版协议；同步到 `.claude/skills/`；`verify:skills-sync` 通过 |
-| SKILL-02-DOGFOOD-NOTE | pending | 起 `docs/dogfood/` 目录；备赛期每次用 / 没用都写 1-3 行；30 天后回看 |
-| SKILL-03-PROMPT-ITERATION | pending | 基于 dogfood 数据调 SKILL.md 的 prompt 模板；只动 SKILL.md，不动其他 |
-| SKILL-04-PERSONAL-DAILY-SUMMARY | pending | 极简日报/周报 skill：每天问"今天干了啥"→ 生成个人 markdown 存档。解决"被老师/学长问这周做了什么答不上来"。备赛期可做 |
+| 任务 | 状态 | type | 内容 |
+|------|------|------|------|
+| SKILL-01-DEBUG-CHECKLIST-V0_0_1 | done | skill | 已落地 v0.0.1 于 f5df2bf；DoD = SKILL.md 落地 + verify:skills-sync 通过（已闭环） |
+| SKILL-02-DOGFOOD-NOTE | pending | docs | 起 `docs/dogfood/` 目录；备赛期每次用 / 没用都写 1-3 行；30 天后回看 |
+| SKILL-03-PROMPT-ITERATION | pending | skill | 基于 dogfood 数据调 SKILL.md 的 prompt 模板；只动 SKILL.md，不动其他 |
+| SKILL-04-PERSONAL-DAILY-SUMMARY | done | skill | 已落地 v0.0.1 于 93dc7d0；DoD = SKILL.md 落地 + verify:skills-sync 通过（已闭环） |
 
 ## P1 — Bridge（备赛后启动）
 
-| 任务 | 状态 | 内容 |
-|------|------|------|
-| BRIDGE-01-ROSTER-SCHEMA | pending（备赛后） | 在 `docs/bridge/ROSTER.schema.md` 起一份 markdown schema；先打印贴墙试用 |
-| BRIDGE-02-PRINTABLE-V0 | pending（备赛后） | schema 跑通后做一个能打印的纯 markdown 模板，无网页 |
-| BRIDGE-03-READONLY-VIEWER | pending（备赛后） | 决定要不要做 web 只读视图；要做就把 v0.3 网页 UI 改造为 markdown viewer |
-| BRIDGE-04-WORKLOAD-VISIBILITY | pending（备赛后） | "谁被任务卡住 + 需要什么帮助"——只显示任务阻塞，不显示人与人的产能排名。可辅助"简单任务的人去帮卡住的人"配对 |
+| 任务 | 状态 | type | 内容 |
+|------|------|------|------|
+| BRIDGE-01-ROSTER-SCHEMA | pending（备赛后） | docs | 在 `docs/bridge/ROSTER.schema.md` 起一份 markdown schema；先打印贴墙试用 |
+| BRIDGE-02-PRINTABLE-V0 | pending（备赛后） | design | schema 跑通后做一个能打印的纯 markdown 模板，无网页 |
+| BRIDGE-03-READONLY-VIEWER | pending（备赛后） | design | 决定要不要做 web 只读视图；要做就把 v0.3 网页 UI 改造为 markdown viewer |
+| BRIDGE-04-WORKLOAD-VISIBILITY | pending（备赛后） | design | "谁被任务卡住 + 需要什么帮助"——只显示任务阻塞，不显示人与人的产能排名。可辅助"简单任务的人去帮卡住的人"配对 |
 
 ## P2 — Trail（archive 数据足够后启动）
 
-| 任务 | 状态 | 内容 |
-|------|------|------|
-| TRAIL-01-VIEWER-DESIGN | pending（archive ≥ 20 条） | 设计三种视图：个人足迹 / 模块史 / 赛季年鉴 |
-| TRAIL-02-AUTO-WEAVE | pending | AI 把 `.debug-archive/` + 个人日报织成"成长摘要" |
-| TRAIL-03-V03-UI-RETIRE | pending | v0.3 网页 UI 退役为 Trail 的 markdown viewer |
-| TRAIL-04-WEEKLY-SUMMARY | pending | 自动聚合个人日报/周报 + debug 记录，生成"这周干了啥"的可分享摘要。直接回答老师/学长问话 |
+| 任务 | 状态 | type | 内容 |
+|------|------|------|------|
+| TRAIL-01-VIEWER-DESIGN | pending（archive ≥ 20 条） | design | 设计三种视图：个人足迹 / 模块史 / 赛季年鉴 |
+| TRAIL-02-AUTO-WEAVE | pending | design | AI 把 `.debug-archive/` + 个人日报织成"成长摘要" |
+| TRAIL-03-V03-UI-RETIRE | pending | design | v0.3 网页 UI 退役为 Trail 的 markdown viewer |
+| TRAIL-04-WEEKLY-SUMMARY | pending | design | 自动聚合个人日报/周报 + debug 记录，生成"这周干了啥"的可分享摘要。直接回答老师/学长问话 |
 
 ## 已冻结（pre-pivot，不再认领）
 
