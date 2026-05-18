@@ -12,8 +12,7 @@
 - `docs/product/`：产品定义、领域语言、长期能力方向。仅在产品定义变化时读取。
 - `docs/archive/`：历史归档（含 `pre-slim/` 瘦身前文档与 `v0.2-closeout/`），默认不读，仅在历史追溯命中时读取。
 - `.agents/skills/`：可执行流程规则；权威源；一个 skill 只做一件事。
-- `.debug_workspace/`：调试运行数据与归档。
-- `.debug-archive/`：Skill 产出的 debug 归档 markdown；Trail 的数据源。
+- `.debug-archive/`：Skill 产出的 debug 归档 markdown(本地活跃,`.gitignore` 覆盖,不入库);Trail 未来的数据源。
 - `README.md`：对外门面，不是内部事实源。
 - 禁止把临时思考散落到仓库根目录或无关路径。
 

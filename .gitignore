@@ -33,3 +33,7 @@ tmp/
 
 # Release build outputs; tracked historical release assets stay tracked until convention changes.
 .release/
+
+# Skill / Bridge 本地写入区(灰区:活跃但不入库)
+.debug-archive/
+.bridge/

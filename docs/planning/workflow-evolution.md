@@ -1,3 +1,10 @@
+---
+status: forward-looking
+written_at: 2026-05-17
+activated_by: 写 ADR D-020 + 修改 AGENTS.md §6 + 更新 atomic-task skill,三者全齐
+note: 本文档仅是范式判断存档,激活前不构成任何工作流约束
+---
+
 # 工作流范式演进（forward-looking）
 
 > 状态：**forward-looking，未生效**。
