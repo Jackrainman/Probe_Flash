@@ -1,3 +1,10 @@
+---
+status: forward-looking
+written_at: 2026-05-16
+activated_by: docs/planning/workflow-evolution.md §9 4 条 checklist 全部完成
+note: 本 plan 未构成当前工作流约束；激活前 AI 不应据此立任务、不应据此修改 backlog/now.md/decisions.md
+---
+
 # Lark Gateway Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

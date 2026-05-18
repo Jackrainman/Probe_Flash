@@ -2,6 +2,10 @@
 version: "1.0"
 updated: "2026-05-16T14:35:00+08:00"
 project: lark-gateway
+status: forward-looking
+written_at: 2026-05-16
+activated_by: docs/planning/workflow-evolution.md §9 4 条 checklist 全部完成
+note: 本文件未构成当前工作流约束；激活前 AI 不应据此立任务、不应据此修改 backlog/now.md/decisions.md
 ---
 
 # 任务队列

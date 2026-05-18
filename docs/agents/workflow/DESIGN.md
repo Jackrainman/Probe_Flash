@@ -1,3 +1,10 @@
+---
+status: forward-looking
+written_at: 2026-05-16
+activated_by: docs/planning/workflow-evolution.md §9 4 条 checklist 全部完成
+note: 本文件未构成当前工作流约束；激活前 AI 不应据此立任务、不应据此修改 backlog/now.md/decisions.md
+---
+
 # ProbeFlash Agent 工作流协议 v1.0
 
 > **目标**: AI 无状态领取任务，自行拆原子任务+plan，批量执行直到全阻塞
