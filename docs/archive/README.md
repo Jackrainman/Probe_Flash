@@ -4,7 +4,7 @@
 
 ## 子目录
 
-- `v0.3-pivot/`:v0.3.0 退役时(D-018)固化的 planning 快照(`now.md` / `backlog.md` / `roadmap.md` / `decisions.md`)。pre-pivot 候选池、阶段判断、长期 ADR 的最后一份完整副本。
+- `v0.3-pivot/`:v0.3.0 退役时(D-018)固化的 planning 快照(`now.md` / `backlog.md` / `roadmap.md` / `decisions.md`)与 v0.3 时代产品定义(`product/产品介绍.md` + `product/diagrams/`,含 S3 架构 / SQLite ER / 验收流程等图)。pre-pivot 候选池、阶段判断、长期 ADR 与产品口径的最后一份完整副本。
 - `pre-slim/`:planning 文档瘦身(2026-05-17)前的版本(`backlog.md.preslim` / `decisions.md.preslim` / `AGENTS.md.preslim` 等),含瘦身前的状态表与冗余可视化材料。**§9-§18 的 sandbox 设计史只在 `pre-slim/status.md` 里完整保存**。
 - `v0.2-closeout/`:v0.2 时代 S3 API 契约、SQLite schema 草稿、server-unreachable 策略等设计文档。被 v0.3 实施替代后归档。
 - `reviews/`:历史 review 报告(如 `2026-05-17-se-review.md`,飞书 SDK / Hono / Quartz / monorepo 等 10 条建议)。
