@@ -24,7 +24,7 @@
 
 | 任务 | 状态 | type | 内容 |
 |------|------|------|------|
-| LARK-02-CAPABILITY-MIRROR | pending | research | 把用户已委托 gemini 完成的两份飞书 API 能力调研报告（用户本地 `~/Downloads/`）摘到 `docs/research/lark-api-capability.md`；`decisions.md` 追 D-020 结论"飞书 API 能力边界与限制"；DoD = `test -f docs/research/lark-api-capability.md` + `grep -q "^status:" ...` + decisions D-020 行存在 |
+| LARK-02-CAPABILITY-MIRROR | pending | research | 把用户已委托 gemini 完成的两份飞书 API 能力调研报告（已搬入 `docs/飞书开放平台企业内部应用API接入可行性与技术架构深度调研报告.md` + `docs/飞书开放平台企业级能力边界、系统限制与深度集成架构调研报告.md`，不再去 `~/Downloads/` / Windows 路径找）摘到 `docs/research/lark-api-capability.md`；`decisions.md` 追 D-020 结论"飞书 API 能力边界与限制"；DoD = `test -f docs/research/lark-api-capability.md` + `grep -q "^status:" ...` + decisions D-020 行存在 |
 | LARK-OSS-SCAN | pending | research | 调研开源飞书 SDK / gateway 候选（license 友好 + 维护活跃 + 与 Node/TS 栈兼容）；产出 `docs/research/lark-oss-candidates.md`；为路径决策提供输入 |
 | LARK-PATH-DECISION | decision-needed | docs | 基于 LARK-02 + LARK-OSS-SCAN 产出，在 `decisions.md` 追 D-021 ADR：路径 A（用开源仓库）vs 路径 B（自写最小 gateway，复用 `docs/superpowers/plans/2026-05-16-lark-gateway.md` 改 status: in_progress） |
 | LARK-01-CONNECTOR-ARCH | pending（待 PATH-DECISION） | design | 飞书 agent 与 ProbeFlash 的接口设计；产出 `docs/design/lark-connector.md`；触发条件 = PATH-DECISION 完成 |
