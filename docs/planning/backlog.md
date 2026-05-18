@@ -26,7 +26,7 @@
 |------|------|------|------|
 | LARK-02-CAPABILITY-MIRROR | done | research | 已落地于 2026-05-19；`docs/research/lark-api-capability.md` + `decisions.md` D-020；gemini 两份报告事实底座固化到工程仓库 |
 | LARK-OSS-SCAN | done | research | 已落地于 2026-05-19；`docs/research/lark-oss-candidates.md` + decisions.md 追 D-020 后续结论；路径 A 最优基座 = `@larksuiteoapi/node-sdk`，路径 B ~250 行核心代码 |
-| LARK-PATH-DECISION | decision-needed | docs | 基于 LARK-02 + LARK-OSS-SCAN 产出，在 `decisions.md` 追 D-021 ADR：路径 A（用开源仓库）vs 路径 B（自写最小 gateway，复用 `docs/superpowers/plans/2026-05-16-lark-gateway.md` 改 status: in_progress） |
+| LARK-PATH-DECISION | decision-needed（草稿已落） | docs | 基于 LARK-02 + LARK-OSS-SCAN 产出，在 `decisions.md` 追 D-021 ADR：路径 A（用开源仓库）vs 路径 B（自写最小 gateway，复用 `docs/superpowers/plans/2026-05-16-lark-gateway.md` 改 status: in_progress）。**草稿已落地于 2026-05-19**（D-021 标 DECISION-NEEDED，AI 推荐路径 A）；等用户拍板后改"决策"状态 |
 | LARK-01-CONNECTOR-ARCH | pending（待 PATH-DECISION） | design | 飞书 agent 与 ProbeFlash 的接口设计；产出 `docs/design/lark-connector.md`；触发条件 = PATH-DECISION 完成 |
 | LARK-03-MIN-INTEGRATION | pending（待 LARK-01 + 飞书企业内部应用注册） | code | 跑通"飞书消息 → ProbeFlash → 飞书回复"最小闭环；@机器人"调试底盘电机不转"→ 返回 debug-checklist 输出 |
 

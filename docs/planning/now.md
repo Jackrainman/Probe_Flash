@@ -6,12 +6,12 @@
 mode: post_pivot_self_dogfood
 stage: 备赛期 self-iteration + 飞书接入推进
 stage_goal: 完善 debug-checklist skill 自用迭代 + 推进飞书接入（gemini 已完成 API 能力调研，下一步把调研落到仓库 + 找开源候选 + 路径决策）
-current_task: null  # LARK-OSS-SCAN 已完成；frontier 首个 = LARK-PATH-DECISION（草稿态：写 ADR D-021 草稿后停等用户拍板）
-frontier:
-  - LARK-PATH-DECISION           # 用开源 vs 自写最小 gateway 的 ADR D-021；草稿态需用户拍板
+current_task: null  # D-021 草稿已落地，frontier 暂空，等用户拍板路径 A vs 路径 B
+frontier: []
 blocked:
+  - LARK-PATH-DECISION                   # 草稿已落 D-021，等用户拍板（AI 推荐路径 A）
   - BRIDGE-01-ROSTER-SCHEMA              # 等 BRIDGE 备赛后启动
-  - LARK-01-CONNECTOR-ARCH               # 等 PATH-DECISION
+  - LARK-01-CONNECTOR-ARCH               # 等 PATH-DECISION 拍板
   - LARK-03-MIN-INTEGRATION              # 等 LARK-01 + 飞书企业内部应用注册
 post_pivot_registry:
   - BRIDGE-03-LARK-INTEGRATION           # 备赛后随 LARK 系列重评
@@ -22,7 +22,7 @@ frozen:
 
 ## 当前任务
 
-_无。2026-05-19 LARK-OSS-SCAN 已完成：`docs/research/lark-oss-candidates.md` + decisions.md 追"D-020 后续"结论。下次拍板从 frontier 取首个 = `LARK-PATH-DECISION`（草稿态：用户接力链中 AI 写 ADR D-021 草稿后停等用户拍板）。_
+_无。2026-05-19 LARK-PATH-DECISION 草稿已落地（decisions.md D-021，标 DECISION-NEEDED）：AI 推荐路径 A（用 `@larksuiteoapi/node-sdk`），主要权衡 / 工程量估算 / 备赛期可行性已写入。**等用户拍板**——拍板后把 D-021 状态改"决策"，解锁 LARK-01-CONNECTOR-ARCH。_
 
 ## 架构定位（2026-05-15）
 
@@ -49,8 +49,8 @@ ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 
 
 ## 最近完成（详见 `git log`）
 
+- 2026-05-19 LARK-PATH-DECISION 草稿落地：decisions.md D-021 草稿（DECISION-NEEDED），AI 推荐路径 A（`@larksuiteoapi/node-sdk`），含权衡 / 工程量 / 备赛期可行性。**等用户拍板**。
 - 2026-05-19 LARK-OSS-SCAN 落地：`docs/research/lark-oss-candidates.md`（路径 A 最优 SDK = `@larksuiteoapi/node-sdk`；路径 B 自写 gateway 工程量估算 ~250 行）+ decisions.md 追 D-020 后续结论。
 - 2026-05-19 LARK-02-CAPABILITY-MIRROR 落地：`docs/research/lark-api-capability.md` + `decisions.md` D-020；gemini 两份报告事实底座固化到工程仓库。
 - 2026-05-19 仓库大清理 5 commit：基础（gitignore/AGENTS 路径修正/forward-looking 标注/stale 分支删/templates 删/archive README）+ docs/product 整目录归档到 `v0.3-pivot/product/` + 5 个 v0.3 debug skill 退役到 `.agents/skill-library/`（active Claude 触发面只剩 4 个）+ specs/ 加 README 统一 status 词汇 + 本次 now+backlog 校齐 + LARK 备赛期解锁。
 - 2026-05-17 AI 脚手架 spec/plan 已标 archived（M1/M2/M3 + C1 全部落地，详见 `docs/superpowers/specs/2026-05-17-ai-scaffolding-design.md` frontmatter）。
-- 2026-05-17 SKILL-05-PRE-MATCH-CHECKLIST v0.0.1 落地（commit `9beb907`，赛前出征检查单 skill）。
