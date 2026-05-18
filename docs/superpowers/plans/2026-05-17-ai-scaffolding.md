@@ -1,3 +1,13 @@
+---
+status: archived
+written_at: 2026-05-17
+closed_at: 2026-05-18
+landed_in:
+  - 4c09ba1 # T1/T2/T3 (M1/M2/M3 三条 atomic-task 规则)
+  - 12e747e # C1 (lark-gateway 6 文件标 forward-looking)
+note: 本 plan 已实施完毕;checkbox 未回填 [x],事实以 landed_in commit 为准
+---
+
 # AI 脚手架补强（atomic-task 框架）Implementation Plan
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.

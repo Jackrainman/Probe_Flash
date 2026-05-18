@@ -1,7 +1,11 @@
 ---
 title: AI 脚手架设计 — atomic-task 框架补强
-status: draft
+status: archived
 date: 2026-05-17
+closed_at: 2026-05-18
+landed_in:
+  - 4c09ba1 # M1/M2/M3 落地到 .agents/skills/atomic-task/SKILL.md
+  - 12e747e # C1 lark-gateway 6 文件标 forward-looking
 scope: skill + planning docs only
 out_of_scope: 代码 / verify 命令 / schema 变更 / 产品反馈通路
 ---

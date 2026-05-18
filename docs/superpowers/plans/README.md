@@ -11,4 +11,4 @@
 当前文件状态速览：
 
 - `2026-05-16-lark-gateway.md`：`status: forward-looking`（激活条件见 `docs/planning/workflow-evolution.md` §9）
-- `2026-05-17-ai-scaffolding.md`：当前生效（本目录其他 plan 之一）
+- `2026-05-17-ai-scaffolding.md`：`status: archived`（M1/M2/M3 落地于 `4c09ba1`、C1 落地于 `12e747e`）
