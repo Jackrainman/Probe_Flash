@@ -6,13 +6,12 @@
 mode: post_pivot_self_dogfood
 stage: 备赛期 self-iteration + 飞书接入推进
 stage_goal: 完善 debug-checklist skill 自用迭代 + 推进飞书接入（gemini 已完成 API 能力调研，下一步把调研落到仓库 + 找开源候选 + 路径决策）
-current_task: null  # Wave 1-5 仓库清理完成后下次拍板；frontier 已预选
+current_task: null  # LARK-02 已完成；frontier 首个 = LARK-OSS-SCAN
 frontier:
-  - LARK-02-CAPABILITY-MIRROR    # 摘 gemini 报告到 docs/research/lark-api-capability.md
-  - LARK-OSS-SCAN                # 找开源飞书 SDK / gateway 候选
+  - LARK-OSS-SCAN                # 找开源飞书 SDK / gateway 候选（Node-TS 栈）
   - LARK-PATH-DECISION           # 用开源 vs 自写最小 gateway 的 ADR D-021
 blocked:
-  - BRIDGE-01-ROSTER-SCHEMA              # 等 LARK-02 完成后再设计 schema
+  - BRIDGE-01-ROSTER-SCHEMA              # 等 BRIDGE 备赛后启动
   - LARK-01-CONNECTOR-ARCH               # 等 PATH-DECISION
   - LARK-03-MIN-INTEGRATION              # 等 LARK-01 + 飞书企业内部应用注册
 post_pivot_registry:
@@ -24,15 +23,15 @@ frozen:
 
 ## 当前任务
 
-_无。`docs/superpowers/specs/2026-05-17-ai-scaffolding-design.md` 的 T1/T2/T3 + C1 已全部落地（commit `4c09ba1` / `12e747e`，spec 已标 `status: archived`）。2026-05-19 Wave 1-5 仓库清理完成（基础清理 / 产品介绍归档 / v0.3 debug skill 退役到 skill-library / specs 词汇统一 / 本次 now+backlog 校齐+LARK 解锁）。下次拍板从 frontier 取首个 = `LARK-02-CAPABILITY-MIRROR`。_
+_无。2026-05-19 LARK-02-CAPABILITY-MIRROR 已完成：gemini 两份报告摘到 `docs/research/lark-api-capability.md`，`decisions.md` 追 D-020；下次拍板从 frontier 取首个 = `LARK-OSS-SCAN`（用户接力链中正在自动续推）。_
 
 ## 架构定位（2026-05-15）
 
-ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 `roadmap.md` §0。改动要点：放弃微信接入；允许轻量 server 仅做飞书对接；今年验证目标 = "飞书消息 → ProbeFlash 处理 → 飞书回复" 闭环。gemini 已完成 API 能力调研（待摘到 `docs/research/`）。
+ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 `roadmap.md` §0。改动要点：放弃微信接入；允许轻量 server 仅做飞书对接；今年验证目标 = "飞书消息 → ProbeFlash 处理 → 飞书回复" 闭环。Gemini API 能力调研已落地 `docs/research/lark-api-capability.md`（D-020）。
 
 ## 阻塞 / 待拍板
 
-- **LARK-PATH-DECISION**：用开源仓库 vs 自写最小 gateway——需等 LARK-02 / LARK-OSS-SCAN 完成后拍 ADR D-021
+- **LARK-PATH-DECISION**：用开源仓库 vs 自写最小 gateway——需等 LARK-OSS-SCAN 完成后拍 ADR D-021
 - **BRIDGE 设计**：等 LARK-PATH-DECISION + LARK-03 跑通后再启动（`docs/superpowers/specs/2026-05-18-bridge-roster-design.md` 已 forward-looking）
 - **是否值得接入飞书**：gemini 调研已覆盖能力 / 限制 / 鉴权；最终判断在 LARK-PATH-DECISION 之后
 
@@ -51,8 +50,8 @@ ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 
 
 ## 最近完成（详见 `git log`）
 
+- 2026-05-19 LARK-02-CAPABILITY-MIRROR 落地：`docs/research/lark-api-capability.md` + `decisions.md` D-020；gemini 两份报告事实底座固化到工程仓库。
 - 2026-05-19 仓库大清理 5 commit：基础（gitignore/AGENTS 路径修正/forward-looking 标注/stale 分支删/templates 删/archive README）+ docs/product 整目录归档到 `v0.3-pivot/product/` + 5 个 v0.3 debug skill 退役到 `.agents/skill-library/`（active Claude 触发面只剩 4 个）+ specs/ 加 README 统一 status 词汇 + 本次 now+backlog 校齐 + LARK 备赛期解锁。
 - 2026-05-17 AI 脚手架 spec/plan 已标 archived（M1/M2/M3 + C1 全部落地，详见 `docs/superpowers/specs/2026-05-17-ai-scaffolding-design.md` frontmatter）。
 - 2026-05-17 SKILL-05-PRE-MATCH-CHECKLIST v0.0.1 落地（commit `9beb907`，赛前出征检查单 skill）。
 - 2026-05-17 SKILL-01-DEBUG-CHECKLIST-V0_0_1 工程闭环承认；DoD = SKILL.md 落地 + verify:skills-sync 通过。
-- 2026-05-17 软件工程复用 review 归档 `docs/archive/reviews/2026-05-17-se-review.md`（10 条建议；用户态度待回填，未触发任何实施）。
