@@ -88,33 +88,39 @@
 - 详情见 `docs/research/lark-oss-candidates.md`。
 - 本条是事实陈述，**不构成路径拍板**；拍板见 D-021（LARK-PATH-DECISION 任务交付）。
 
-## D-021（草稿 / DECISION-NEEDED）：飞书 gateway 路径选型——用开源 SDK 还是自写最小 gateway
-- 日期：2026-05-19（草稿创建，等用户拍板）
-- 状态：**DECISION-NEEDED**。本 ADR 由 AI 在 LARK-PATH-DECISION 任务中草拟，含选项、权衡、推荐、备赛期可行性；最终决策保留给用户。用户拍板后本 ADR 应更新为"决策"状态，并把"AI 推荐"段落改写为"最终决策"。
+## D-021：飞书 gateway 路径选型——用开源 SDK 还是自写最小 gateway
+- 日期：2026-05-19（草稿）→ 2026-05-19（用户拍板）
+- 状态：**DECIDED**。2026-05-19 用户拍板路径 A，附加两项接受："SDK 作长期依赖"、"启用 SDK 的 Long Connection 模式"。用户原话："A，全部接受，先接进去看看，有问题或者有时间再去优化"。
 - 输入来源：D-020 + D-020 后续（`docs/research/lark-api-capability.md` + `docs/research/lark-oss-candidates.md`）
 - 决策范围：备赛期 ProbeFlash 实现"飞书 @机器人 收到调试症状 → 调 debug-checklist skill → 飞书群内回复检查单"最小闭环的代码层选型
 
-### 选项 A：用开源 SDK `@larksuiteoapi/node-sdk`（npm: `@larksuiteoapi/node-sdk`）
-- 仓库：`larksuite/node-sdk`（MIT，TypeScript 原生，2026-05-14 推送，267 stars）
-- ProbeFlash 集成代码量：~50 行（构造 Client + EventDispatcher.register + adaptExpress + im.message.create）
-- 已内置：Token 自动刷新 / AES-256-GCM 解密 / Challenge-Response / 签名校验 / Express+Koa 适配器 / 长连接模式（可绕开固定 IP 白名单约束）
-- 引入依赖：`@larksuiteoapi/node-sdk` 一个 npm 包
+### 最终决策（2026-05-19 用户拍板）
+**路径 A：用 `@larksuiteoapi/node-sdk` 作为飞书侧基座。**
 
-### 选项 B：自写最小 gateway（零飞书 SDK 依赖）
-- 工程量估算：~250 行核心代码 + 加解密链路单测（详见 `lark-oss-candidates.md` §5.1）
-- 模块：Webhook 入口 / Challenge-Response / AES-256-GCM 解密 / HMAC-SHA256 签名校验 / Token 缓存与刷新 / 消息发送 / 错误处理与指数退避
-- 已存在的脚手架：`docs/superpowers/plans/2026-05-16-lark-gateway.md`（当前 `status: forward-looking`，未激活；激活后作为 路径 B 的具体执行计划）
-- 引入依赖：仅 Express + Node `crypto`（标准库）；可选 `zod` 做 payload 校验
+附加决定（用户已接受）：
+1. **`@larksuiteoapi/node-sdk` 作为长期依赖**：接受上游政策变更带来的迁移成本；备赛期不预留"脱依赖"的工程预算。
+2. **启用 Long Connection 模式作为备赛期短期方案**：用 SDK 内置的长连接订阅模式绕开"固定公网 IP 白名单"约束；备赛期不要求用户先准备固定公网 IP 服务器。备赛后若有时间或出现具体性能问题，再切换到 Webhook + 固定 IP 模式。
+3. **执行节奏**："先接进去看看，有问题或者有时间再去优化"——LARK-01 / LARK-03 / LARK-ONBOARD 推进时按 MVP 范围执行，不在 MVP 阶段做性能优化 / 容错加固 / SDK 替换准备。
 
-### AI 推荐（待用户判定是否采纳）
-**路径 A：用 `@larksuiteoapi/node-sdk`**。
-
+### 决策依据（拍板前的 AI 推荐 + 用户接受）
 理由（按权重排序）：
 1. **能力契合 8/8 直接覆盖**——`lark-api-capability.md` §8.1 列的 MVP 8 项需求被 SDK 全部内置，无认知缺口。
 2. **加解密链路自实现是大风险**——AES-256-GCM 解密 + HMAC 签名校验自己写时错一行就漏数据/拒收事件，备赛期没时间打磨这条链路。SDK 已经在生产规模下打磨过，复用边际收益显著高于自写。
 3. **备赛期时间窗短**——~50 行 vs ~250 行 + 单测 的差距，在备赛期约 1 周的窗口内是"半天 vs 三天"的差距，且后者还要承担加解密 bug 的潜伏成本。
 4. **路径 A 不阻断后续脱开**——如果未来要去依赖，gateway 部分可以局部替换；SDK 引入的代码集中在 1-2 个文件，迁移成本可控。
 5. **OpenClaw 系桥接器（如 `clawdbot-feishu`）协议方向错位**——ProbeFlash 不是 LLM agent，不应套用 agent channel 协议。
+
+### 选项 A（已采纳）：用开源 SDK `@larksuiteoapi/node-sdk`
+- 仓库：`larksuite/node-sdk`（MIT，TypeScript 原生，2026-05-14 推送，267 stars）
+- ProbeFlash 集成代码量：~50 行（构造 Client + EventDispatcher.register + Long Connection 启动 + im.message.create）
+- 已内置：Token 自动刷新 / AES-256-GCM 解密 / Challenge-Response / 签名校验 / Express+Koa 适配器 / 长连接模式（备赛期主用此模式）
+- 引入依赖：`@larksuiteoapi/node-sdk` 一个 npm 包
+
+### 选项 B（未采纳）：自写最小 gateway（零飞书 SDK 依赖）
+- 工程量估算：~250 行核心代码 + 加解密链路单测（详见 `lark-oss-candidates.md` §5.1）
+- 模块：Webhook 入口 / Challenge-Response / AES-256-GCM 解密 / HMAC-SHA256 签名校验 / Token 缓存与刷新 / 消息发送 / 错误处理与指数退避
+- 已存在的脚手架：`docs/superpowers/plans/2026-05-16-lark-gateway.md`（保持 `status: forward-looking`；本 ADR 选路径 A，不激活此 plan）
+- 引入依赖：仅 Express + Node `crypto`（标准库）；可选 `zod` 做 payload 校验
 
 ### 主要权衡
 
@@ -134,19 +140,15 @@
 
 两条路径都**不依赖** AnyBridge / 多维表格 / 卡片流式更新（都在 MVP 外）。
 两条路径都**必须**先解决：
-- 固定公网 IP（路径 A 可走 Long Connection 模式短期回避；路径 B 必须有固定 IP）
 - 4 个凭证：`app_id` / `app_secret` / `encrypt_key` / `verification_token`（用户线下注入 .env）
 
-### 待用户拍板的关键问题
-1. **路径选 A 还是 B？**（AI 推荐 A，但用户对"零依赖 / 完全可控 / 学习每行加密代码"有偏好可选 B）
-2. **若选 A，是否接受引入 `@larksuiteoapi/node-sdk` 作为长期依赖**（含上游政策变更迁移成本的承诺）？
-3. **是否启用 Long Connection 模式作为备赛期短期方案**（路径 A 选项）以绕开"固定公网 IP"约束？还是继续要求用户提供固定 IP？
+固定公网 IP 在本 ADR 决策下**不再是路径 A 的硬约束**（启用 Long Connection 模式绕开）；备赛期保留固定 IP 准备工作给"将来切换到 Webhook 模式"，不阻塞备赛期 MVP。
 
-### 用户拍板后的下一步
-1. 把本 ADR 头部 `（草稿 / DECISION-NEEDED）` 改成"决策"，"AI 推荐"段改写为"最终决策"，加日期。
-2. 解锁 `LARK-01-CONNECTOR-ARCH`（设计 `docs/design/lark-connector.md`，接口 / 数据流 / 错误模型），从 `now.md.blocked` 提升到 `frontier`。
-3. 若选路径 B：把 `docs/superpowers/plans/2026-05-16-lark-gateway.md` 的 `status: forward-looking` 改为 `status: in_progress`（同时确认 plan 中"调 Claude API"细节是否与 ProbeFlash 现状一致，可能需要细化）。
-4. 若选路径 A：无需改动 forward-looking plan；后续 `LARK-03-MIN-INTEGRATION` 任务直接基于 SDK 实现。
+### 拍板已落实的动作（2026-05-19）
+1. ✅ 本 ADR 头部从 `（草稿 / DECISION-NEEDED）` 改为 `DECIDED`；"AI 推荐"段已重写为"最终决策"。
+2. → LARK-01-CONNECTOR-ARCH 从 `now.md.blocked` 提升到 `frontier`（本 commit 同步）。
+3. → `docs/superpowers/plans/2026-05-16-lark-gateway.md` 保持 `status: forward-looking`（路径 A 不激活此 plan）。
+4. → LARK-03-MIN-INTEGRATION 推进时直接基于 `@larksuiteoapi/node-sdk` Long Connection 模式实现。
 
 ### 放弃方案（不考虑）
 - `larksuite/oapi-sdk-nodejs`：DEPRECATED，3 年未更新（D-020 后续段已列）
@@ -154,3 +156,4 @@
 - `openclaw-lark` / `clawdbot-feishu` / `AlexAnys/feishu-openclaw`：OpenClaw 协议错位，ProbeFlash 不是 LLM agent
 - 飞书 AnyBridge 商业集成平台：备赛期不采购商业版
 - 飞书原生自动化流：免费版 200 次/月 死锁（D-020 § 自动化流）
+- 自写最小 gateway（选项 B）：路径 A 已采纳，本期不并行做 B；备赛后若出现 SDK 锁定 / 性能问题再重评
