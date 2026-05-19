@@ -6,10 +6,9 @@
 mode: post_pivot_self_dogfood
 stage: 备赛期 self-iteration + 飞书接入推进
 stage_goal: 完善 debug-checklist skill 自用迭代 + 推进飞书接入（gemini 已完成 API 能力调研，下一步把调研落到仓库 + 找开源候选 + 路径决策）
-current_task: null  # D-021 用户已拍板路径 A；frontier 首个 = LARK-01-CONNECTOR-ARCH
+current_task: null  # LARK-01 已完成；frontier 首个 = LARK-03-MIN-INTEGRATION
 frontier:
-  - LARK-01-CONNECTOR-ARCH       # 设计 docs/design/lark-connector.md（基于 @larksuiteoapi/node-sdk + Long Connection）
-  - LARK-03-MIN-INTEGRATION      # PATH-DECISION 已拍板，代码部分可推进（不含真实 provider smoke）
+  - LARK-03-MIN-INTEGRATION      # 实现 lark-gateway 代码（按 lark-connector.md，Mock-first）
   - LARK-ONBOARD-GUIDE           # 用户线下动作清单（飞书后台注册 / 4 凭证 .env / 本地 smoke）
 blocked:
   - BRIDGE-01-ROSTER-SCHEMA              # 等 BRIDGE 备赛后启动
@@ -22,7 +21,7 @@ frozen:
 
 ## 当前任务
 
-_无。2026-05-19 LARK-PATH-DECISION 用户已拍板：**路径 A**（`@larksuiteoapi/node-sdk`），SDK 长期依赖 + Long Connection 模式 + "先接进去看看，有问题或者有时间再去优化"。D-021 已落终态。下次拍板从 frontier 取首个 = `LARK-01-CONNECTOR-ARCH`（用户接力链继续推进）。_
+_无。2026-05-19 LARK-01-CONNECTOR-ARCH 已完成：`docs/design/lark-connector.md`（status: draft，11 节）落地；decisions.md 追"D-021 后续：lark-connector 设计草案落地"。下次拍板从 frontier 取首个 = `LARK-03-MIN-INTEGRATION`（代码层，Mock-first，不含真实 provider smoke）。_
 
 ## 架构定位（2026-05-15）
 
@@ -48,8 +47,8 @@ ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 
 
 ## 最近完成（详见 `git log`）
 
+- 2026-05-19 LARK-01-CONNECTOR-ARCH 落地：`docs/design/lark-connector.md`（status: draft，11 节）；新建 `apps/lark-gateway/` 子包架构、WSClient+EventDispatcher 接口契约、Mock-first 调度策略、4 字段 .env 边界、3 秒 ack 边界、错误模型 + decisions.md D-021 后续。
 - 2026-05-19 LARK-PATH-DECISION 拍板：D-021 落终态（DECIDED）；用户拍板路径 A + SDK 长期依赖 + Long Connection 模式；LARK-01 / LARK-03 / LARK-ONBOARD 解锁。
 - 2026-05-19 LARK-PATH-DECISION 草稿落地：decisions.md D-021 草稿（DECISION-NEEDED）→ 拍板后改 DECIDED。
 - 2026-05-19 LARK-OSS-SCAN 落地：`docs/research/lark-oss-candidates.md`（路径 A 最优 SDK = `@larksuiteoapi/node-sdk`；路径 B 自写 gateway 工程量估算 ~250 行）+ decisions.md 追 D-020 后续结论。
 - 2026-05-19 LARK-02-CAPABILITY-MIRROR 落地：`docs/research/lark-api-capability.md` + `decisions.md` D-020；gemini 两份报告事实底座固化到工程仓库。
-- 2026-05-19 仓库大清理 5 commit：基础（gitignore/AGENTS 路径修正/forward-looking 标注/stale 分支删/templates 删/archive README）+ docs/product 整目录归档到 `v0.3-pivot/product/` + 5 个 v0.3 debug skill 退役到 `.agents/skill-library/`（active Claude 触发面只剩 4 个）+ specs/ 加 README 统一 status 词汇 + 本次 now+backlog 校齐 + LARK 备赛期解锁。

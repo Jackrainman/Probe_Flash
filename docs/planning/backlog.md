@@ -27,7 +27,7 @@
 | LARK-02-CAPABILITY-MIRROR | done | research | 已落地于 2026-05-19；`docs/research/lark-api-capability.md` + `decisions.md` D-020；gemini 两份报告事实底座固化到工程仓库 |
 | LARK-OSS-SCAN | done | research | 已落地于 2026-05-19；`docs/research/lark-oss-candidates.md` + decisions.md 追 D-020 后续结论；路径 A 最优基座 = `@larksuiteoapi/node-sdk`，路径 B ~250 行核心代码 |
 | LARK-PATH-DECISION | done | docs | 用户已拍板（2026-05-19）路径 A（`@larksuiteoapi/node-sdk`），SDK 长期依赖 + Long Connection 模式 + "先接进去看看再优化"；decisions.md D-021 落终态 DECIDED |
-| LARK-01-CONNECTOR-ARCH | pending（已解锁） | design | 飞书 agent 与 ProbeFlash 的接口设计；产出 `docs/design/lark-connector.md`；基于 `@larksuiteoapi/node-sdk` + Long Connection 模式 |
+| LARK-01-CONNECTOR-ARCH | done | design | 已落地于 2026-05-19；`docs/design/lark-connector.md` (status: draft) + decisions.md D-021 后续；Mock-first 设计，apps/lark-gateway/ 子包 7 模块，3 秒 ack 边界，4 字段 .env |
 | LARK-03-MIN-INTEGRATION | pending（已解锁，代码部分） | code | 跑通"飞书消息 → ProbeFlash → 飞书回复"最小闭环；@机器人"调试底盘电机不转"→ 返回 debug-checklist 输出；**真实 provider smoke 留用户本地执行** |
 
 ## P1 — Bridge（备赛后启动）
