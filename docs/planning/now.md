@@ -6,9 +6,8 @@
 mode: post_pivot_self_dogfood
 stage: 备赛期 self-iteration + 飞书接入推进
 stage_goal: 完善 debug-checklist skill 自用迭代 + 推进飞书接入（gemini 已完成 API 能力调研，下一步把调研落到仓库 + 找开源候选 + 路径决策）
-current_task: null  # LARK-03 代码部分已完成；frontier 首个 = LARK-ONBOARD-GUIDE
-frontier:
-  - LARK-ONBOARD-GUIDE           # 用户线下动作清单（飞书后台注册 / 4 凭证 .env / 本地 smoke）
+current_task: null  # 用户接力链 6 任务全部完成；frontier 暂空，等用户线下走完 lark-onboard-guide §0-§5
+frontier: []
 blocked:
   - BRIDGE-01-ROSTER-SCHEMA              # 等 BRIDGE 备赛后启动
 post_pivot_registry:
@@ -20,7 +19,7 @@ frozen:
 
 ## 当前任务
 
-_无。2026-05-19 LARK-03-MIN-INTEGRATION 代码部分已完成：`apps/lark-gateway/` 子包落地（9 src + 3 test + 7 配置），24/24 单测通过，typecheck + build + verify:all 全通；Mock-first 模式不调真实 LLM / 不调真实飞书 API。下次拍板从 frontier 取首个 = `LARK-ONBOARD-GUIDE`（用户线下接入动作清单）。_
+_无。2026-05-19 LARK-ONBOARD-GUIDE 已完成：`docs/research/lark-onboard-guide.md`（status: stable，11 节）。用户接力链 6 任务全部完成。下一步**完全在用户侧**：按 onboard guide §0-§5 走完飞书后台注册 + 凭证填入 + 本地 smoke；走通后 LARK-03 整体真正闭环。AI 侧可暂停 LARK 系列推进，等用户反馈 smoke 结果再决定后续（接真实 LLM provider / 切换 Webhook 模式 / 启动 BRIDGE-01）。_
 
 ## 架构定位（2026-05-15）
 
@@ -46,8 +45,8 @@ ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 
 
 ## 最近完成（详见 `git log`）
 
+- 2026-05-19 LARK-ONBOARD-GUIDE 落地：`docs/research/lark-onboard-guide.md`（status: stable，11 节）；§0 前置自检 + §1-§3 飞书后台创建应用/启用机器人/申请权限+事件订阅 + §4 .env 填写 + §5 本地 smoke + §6 可选接真实 LLM provider + §7 可选部署服务器 + §8 排查 + §10 完成 checklist；用户接力链 6 任务全部完成。
 - 2026-05-19 LARK-03-MIN-INTEGRATION 代码部分落地：新建 `apps/lark-gateway/` 子包（9 src + 3 test + 7 配置）；WSClient Long Connection 入站、Mock-first skill 调度、handler 依赖注入；24/24 单测；typecheck + build + verify:all 全通；不引入 LLM provider 依赖、不调真实飞书 API；途中遇 .git/objects 5 文件 0 字节损坏 → 软重置 f467c8f 后重做 LARK-01 commit（f3f0578）。
 - 2026-05-19 LARK-01-CONNECTOR-ARCH 落地：`docs/design/lark-connector.md`（status: draft，11 节）；新建 `apps/lark-gateway/` 子包架构、WSClient+EventDispatcher 接口契约、Mock-first 调度策略、4 字段 .env 边界、3 秒 ack 边界、错误模型 + decisions.md D-021 后续。
 - 2026-05-19 LARK-PATH-DECISION 拍板：D-021 落终态（DECIDED）；用户拍板路径 A + SDK 长期依赖 + Long Connection 模式；LARK-01 / LARK-03 / LARK-ONBOARD 解锁。
 - 2026-05-19 LARK-OSS-SCAN 落地：`docs/research/lark-oss-candidates.md`（路径 A 最优 SDK = `@larksuiteoapi/node-sdk`；路径 B 自写 gateway 工程量估算 ~250 行）+ decisions.md 追 D-020 后续结论。
-- 2026-05-19 LARK-02-CAPABILITY-MIRROR 落地：`docs/research/lark-api-capability.md` + `decisions.md` D-020；gemini 两份报告事实底座固化到工程仓库。

@@ -29,6 +29,7 @@
 | LARK-PATH-DECISION | done | docs | 用户已拍板（2026-05-19）路径 A（`@larksuiteoapi/node-sdk`），SDK 长期依赖 + Long Connection 模式 + "先接进去看看再优化"；decisions.md D-021 落终态 DECIDED |
 | LARK-01-CONNECTOR-ARCH | done | design | 已落地于 2026-05-19；`docs/design/lark-connector.md` (status: draft) + decisions.md D-021 后续；Mock-first 设计，apps/lark-gateway/ 子包 7 模块，3 秒 ack 边界，4 字段 .env |
 | LARK-03-MIN-INTEGRATION | done（代码部分） | code | 已落地于 2026-05-19；`apps/lark-gateway/` 子包（9 src + 3 test + 7 配置）；24/24 单测；typecheck/build/verify:all 全通；Mock-first 模式（claude/deepseek 抛错）；不引入 LLM SDK / 不调真实飞书 API。**真实飞书连通 smoke + 接入真实 LLM provider 留用户线下**（见 LARK-ONBOARD-GUIDE） |
+| LARK-ONBOARD-GUIDE | done | docs | 已落地于 2026-05-19；`docs/research/lark-onboard-guide.md`（status: stable，11 节）；§0 前置自检 + §1-§3 飞书后台动作 + §4 .env 填写 + §5 本地 smoke 走查 + §6 可选接 LLM + §7 可选部署 + §8 排查 + §10 完成 checklist。**下一步全部在用户侧**（按 guide §0-§5 走通） |
 
 ## P1 — Bridge（备赛后启动）
 
