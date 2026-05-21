@@ -1,20 +1,11 @@
-import type { Client } from '@larksuiteoapi/node-sdk';
 import type { Config } from './config.js';
-import type { LarkMessageEvent, SkillReply } from './types.js';
+import type { LarkMessageEvent } from './types.js';
+import type { Toolkit } from '@probeflash/lark-toolkit';
+import type { SkillDispatcher } from '@probeflash/pf-skills';
 
-/**
- * Injectable dependencies. The default wiring lives in `event-router.ts`,
- * which composes the real `dispatchSkill` and `sendReply`. Tests pass in
- * `vi.fn()` mocks so handler logic is exercised without touching the SDK.
- */
 export interface HandlerDeps {
-  dispatchSkill: (symptom: string, cfg: Config) => Promise<SkillReply>;
-  sendReply: (
-    client: Client,
-    chatId: string,
-    messageId: string,
-    reply: SkillReply,
-  ) => Promise<void>;
+  toolkit: Toolkit;
+  skills: SkillDispatcher;
 }
 
 /**
@@ -30,7 +21,6 @@ export function stripMention(text: string): string {
 export async function handleMessage(
   data: LarkMessageEvent,
   cfg: Config,
-  client: Client,
   deps: HandlerDeps,
 ): Promise<void> {
   if (data.message.message_type !== 'text') return;
@@ -52,23 +42,18 @@ export async function handleMessage(
   const symptom = stripMention(rawText);
 
   if (symptom.length === 0) {
-    await deps.sendReply(
-      client,
-      data.message.chat_id,
-      data.message.message_id,
-      {
-        kind: 'help',
-        text: '@我 + 一句调试症状（如"自动跑点又歪了"），我会生成检查清单。',
-      },
-    );
+    await deps.toolkit.reply({
+      chatId: data.message.chat_id,
+      replyToMessageId: data.message.message_id,
+      text: '@我 + 一句调试症状（如"自动跑点又歪了"），我会生成检查清单。',
+    });
     return;
   }
 
-  const reply = await deps.dispatchSkill(symptom, cfg);
-  await deps.sendReply(
-    client,
-    data.message.chat_id,
-    data.message.message_id,
-    reply,
-  );
+  const reply = await deps.skills.dispatch(symptom);
+  await deps.toolkit.reply({
+    chatId: data.message.chat_id,
+    replyToMessageId: data.message.message_id,
+    text: reply.text,
+  });
 }

@@ -23,9 +23,3 @@ export interface LarkMessageEvent {
     sender_id?: { open_id?: string; user_id?: string; union_id?: string };
   };
 }
-
-/** Output shape from skill-dispatcher. */
-export interface SkillReply {
-  kind: 'checklist' | 'mock' | 'error' | 'help';
-  text: string;
-}

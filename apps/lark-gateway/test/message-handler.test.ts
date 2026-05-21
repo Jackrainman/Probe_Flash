@@ -11,9 +11,6 @@ const cfg: Config = {
   PROBEFLASH_SKILL_MODE: 'mock',
 };
 
-// Client is opaque to handleMessage; it just passes through to sendReply
-const fakeClient = {} as never;
-
 interface MakeEventOpts {
   text?: string;
   type?: string;
@@ -34,107 +31,85 @@ function makeEvent(opts: MakeEventOpts): LarkMessageEvent {
   };
 }
 
+function makeDeps() {
+  return {
+    toolkit: { reply: vi.fn().mockResolvedValue(undefined) },
+    skills: {
+      dispatch: vi
+        .fn()
+        .mockResolvedValue({ kind: 'mock' as const, text: '[mock] stub reply' }),
+    },
+  };
+}
+
 describe('handleMessage', () => {
-  test('non-text message type → no skill dispatch and no reply', async () => {
-    const sendReply = vi.fn();
-    const dispatchSkill = vi.fn();
-    await handleMessage(makeEvent({ type: 'post' }), cfg, fakeClient, {
-      sendReply,
-      dispatchSkill,
-    });
-    expect(sendReply).not.toHaveBeenCalled();
-    expect(dispatchSkill).not.toHaveBeenCalled();
+  test('非 text 消息 → 不调度 skill 不回复', async () => {
+    const deps = makeDeps();
+    await handleMessage(makeEvent({ type: 'post' }), cfg, deps);
+    expect(deps.toolkit.reply).not.toHaveBeenCalled();
+    expect(deps.skills.dispatch).not.toHaveBeenCalled();
   });
 
-  test('text without @bot mention → no skill dispatch and no reply', async () => {
-    const sendReply = vi.fn();
-    const dispatchSkill = vi.fn();
+  test('text 但非 @bot → 不调度 skill 不回复', async () => {
+    const deps = makeDeps();
     await handleMessage(
       makeEvent({ text: '大家好', mentions: [] }),
       cfg,
-      fakeClient,
-      { sendReply, dispatchSkill },
+      deps,
     );
-    expect(sendReply).not.toHaveBeenCalled();
-    expect(dispatchSkill).not.toHaveBeenCalled();
+    expect(deps.toolkit.reply).not.toHaveBeenCalled();
+    expect(deps.skills.dispatch).not.toHaveBeenCalled();
   });
 
-  test('text @ another user but not @bot → no skill dispatch and no reply', async () => {
-    const sendReply = vi.fn();
-    const dispatchSkill = vi.fn();
+  test('text @ 别人但非 @bot → 不调度不回复', async () => {
+    const deps = makeDeps();
     await handleMessage(
       makeEvent({
         text: '@_user_2 你看下',
         mentions: [{ key: '@_user_2', id: { open_id: 'ou_other' } }],
       }),
       cfg,
-      fakeClient,
-      { sendReply, dispatchSkill },
+      deps,
     );
-    expect(sendReply).not.toHaveBeenCalled();
-    expect(dispatchSkill).not.toHaveBeenCalled();
+    expect(deps.toolkit.reply).not.toHaveBeenCalled();
+    expect(deps.skills.dispatch).not.toHaveBeenCalled();
   });
 
-  test('@bot with empty content after strip → sends help reply, no skill dispatch', async () => {
-    const sendReply = vi.fn();
-    const dispatchSkill = vi.fn();
+  test('@bot 但 strip 后空 → 发 help reply，不调 skill', async () => {
+    const deps = makeDeps();
     await handleMessage(
       makeEvent({
         text: '@_user_1 ',
         mentions: [{ key: '@_user_1', id: { open_id: 'ou_bot' } }],
       }),
       cfg,
-      fakeClient,
-      { sendReply, dispatchSkill },
+      deps,
     );
-    expect(dispatchSkill).not.toHaveBeenCalled();
-    expect(sendReply).toHaveBeenCalledOnce();
-    const replyArg = sendReply.mock.calls[0][3];
-    expect(replyArg).toMatchObject({ kind: 'help' });
-    expect(replyArg.text).toContain('@我');
+    expect(deps.skills.dispatch).not.toHaveBeenCalled();
+    expect(deps.toolkit.reply).toHaveBeenCalledOnce();
+    const arg = deps.toolkit.reply.mock.calls[0][0];
+    expect(arg.text).toContain('@我');
   });
 
-  test('@bot with symptom → dispatches skill with symptom, sends reply', async () => {
-    const sendReply = vi.fn();
-    const dispatchSkill = vi.fn().mockResolvedValue({
-      kind: 'mock' as const,
-      text: '[mock] stub reply',
-    });
+  test('@bot 带症状 → 调 skills.dispatch(symptom) 然后 toolkit.reply', async () => {
+    const deps = makeDeps();
     await handleMessage(
       makeEvent({
         text: '@_user_1 自动跑点又歪了',
         mentions: [{ key: '@_user_1', id: { open_id: 'ou_bot' } }],
       }),
       cfg,
-      fakeClient,
-      { sendReply, dispatchSkill },
+      deps,
     );
-    expect(dispatchSkill).toHaveBeenCalledOnce();
-    expect(dispatchSkill).toHaveBeenCalledWith('自动跑点又歪了', cfg);
-    expect(sendReply).toHaveBeenCalledOnce();
-    expect(sendReply.mock.calls[0][3]).toMatchObject({
-      kind: 'mock',
+    expect(deps.skills.dispatch).toHaveBeenCalledOnce();
+    expect(deps.skills.dispatch).toHaveBeenCalledWith('自动跑点又歪了');
+    expect(deps.toolkit.reply).toHaveBeenCalledOnce();
+    const arg = deps.toolkit.reply.mock.calls[0][0];
+    expect(arg).toMatchObject({
+      chatId: 'oc_chat',
+      replyToMessageId: 'om_msg',
       text: '[mock] stub reply',
     });
-  });
-
-  test('@bot passes chat_id and message_id to sendReply', async () => {
-    const sendReply = vi.fn();
-    const dispatchSkill = vi
-      .fn()
-      .mockResolvedValue({ kind: 'mock' as const, text: 'x' });
-    await handleMessage(
-      makeEvent({
-        text: '@_user_1 串口又乱码',
-        mentions: [{ key: '@_user_1', id: { open_id: 'ou_bot' } }],
-      }),
-      cfg,
-      fakeClient,
-      { sendReply, dispatchSkill },
-    );
-    const [, chatId, messageId] = sendReply.mock.calls[0];
-    expect(chatId).toBe('oc_chat');
-    expect(messageId).toBe('om_msg');
   });
 });
 
@@ -142,23 +117,19 @@ describe('stripMention', () => {
   test('removes single @ token', () => {
     expect(stripMention('@_user_1 hello')).toBe('hello');
   });
-
   test('removes multiple @ tokens', () => {
     expect(stripMention('@_user_1 fix this @_user_2 thanks')).toBe(
       'fix this thanks',
     );
   });
-
-  test('collapses extra whitespace after removal', () => {
+  test('collapses extra whitespace', () => {
     expect(stripMention('@_user_1   spaced @_user_2   text')).toBe(
       'spaced text',
     );
   });
-
-  test('returns empty string when only @ tokens', () => {
+  test('empty when only @ tokens', () => {
     expect(stripMention('@_user_1 @_user_2')).toBe('');
   });
-
   test('preserves text without @ tokens', () => {
     expect(stripMention('自动跑点又歪了')).toBe('自动跑点又歪了');
   });

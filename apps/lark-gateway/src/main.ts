@@ -1,13 +1,21 @@
 import 'dotenv/config';
+import { createToolkit } from '@probeflash/lark-toolkit';
+import { createSkillDispatcher } from '@probeflash/pf-skills';
 import { loadConfig } from './config.js';
-import { createLarkClients } from './lark-client.js';
+import { createWsClient } from './ws-client.js';
 import { buildEventDispatcher } from './event-router.js';
 import { logger } from './logger.js';
 
 async function main(): Promise<void> {
   const cfg = loadConfig();
-  const { client, wsClient } = createLarkClients(cfg);
-  const eventDispatcher = buildEventDispatcher(cfg, client);
+  const wsClient = createWsClient(cfg);
+  const toolkit = createToolkit({
+    larkAppId: cfg.LARK_APP_ID,
+    larkAppSecret: cfg.LARK_APP_SECRET,
+    larkDomain: cfg.LARK_DOMAIN,
+  });
+  const skills = createSkillDispatcher({ mode: cfg.PROBEFLASH_SKILL_MODE });
+  const eventDispatcher = buildEventDispatcher(cfg, toolkit, skills);
 
   logger.info('starting lark-gateway', {
     domain: cfg.LARK_DOMAIN,
