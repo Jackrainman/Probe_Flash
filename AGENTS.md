@@ -15,12 +15,14 @@
 - `.debug-archive/`：Skill 产出的 debug 归档 markdown(本地活跃,`.gitignore` 覆盖,不入库);Trail 未来的数据源。
 - `README.md`：对外门面，不是内部事实源。
 - 禁止把临时思考散落到仓库根目录或无关路径。
+- **lark-cli skills vs ProbeFlash skills 命名预警**：飞书官方 CLI `@larksuite/cli` 自带 `skills/` 目录（24 个 AI Agent Skills，是"教 Agent 操作飞书 OpenAPI"的指南）。本仓库的 `.agents/skills/`（debug-checklist 等）是"调度领域 skill"。字面同名但完全不同体系，**不会**互通也**不应**互相 import。讨论时全名引用区分（"lark-cli 的 skills/" vs "ProbeFlash `.agents/skills/`"）。
 
 ## 3. Secrets Handling
 - AI / Agent 禁止读取、搜索、打印、总结、复制或提交任何真实密钥文件，包括 `/home/rainman/.config/probeflash/*.env`、仓库内 `.env` / `.env.*` / `.secrets/**` / `*.key` / `*secret*` / `*api-key*`。
 - 不得要求用户粘贴 API key；真实 provider key 只能由用户手动写入仓库外文件或 shell env。
 - 代码只能通过 server 进程环境变量读取 provider key（如 `process.env.DEEPSEEK_API_KEY`）；禁止把 key 放入浏览器 / localStorage / planning / README / 日志 / commit message。
 - 真实 provider smoke 必须由用户本地执行；AI 不读密钥文件来"验证配置"。
+- `@larksuite/cli` 的 `lark config init` / `lark auth login` / token store（`~/.config/...` 或 keychain）全部由用户线下执行；AI 不读其凭证存储，只跑诊断与只读 API（`lark schema` / `lark doctor` / `lark api *.list/get/search`）。写入类 `lark api`（`*.create/update/delete/patch`）需用户一次一批审批后 AI 才可代跑。
 
 ## 4. Modes
 - `post_pivot_self_dogfood`（当前生效）：备赛期自用 dogfood，只认领 Skill 反复迭代 + 飞书架构验证。不动 v0.3 现有代码。禁止夜跑。冷静期 48–72h。

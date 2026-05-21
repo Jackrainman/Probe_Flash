@@ -168,3 +168,23 @@
   5. 3 秒 ack 边界：mock 模式纯本地字符串拼接远在 50ms 内；后续接 LLM 时改异步链路
   6. SDK 集群行为：Long Connection 不广播，多实例只 1 个随接 → 战队服务器跑 1 实例足够
 - 本条不构成新决策，是 D-021 的实现细节展开；LARK-03 代码落地后如有偏差回头更新 design doc 并把 status 升 `stable`。
+
+## D-022 — lark-cli 接入 + lark-gateway 三包拆分
+
+- 状态：DECIDED
+- 日期：2026-05-21
+- 上下文：D-021 拍板路径 A（@larksuiteoapi/node-sdk + Long Connection）后，lark-gateway 单体子包正在向"入站 + 出站 + 业务 skill"三层混合演进。同时飞书官方维护 @larksuite/cli（200+ 命令，17 域），出站能力远大于 gateway 当前 1/N 实现。
+- 决策：
+  1. 接入 @larksuite/cli 作为出站 / 配置 / 诊断的补充入口（用户全局安装，不入 package.json deps）
+  2. lark-gateway 拆为 3 个独立子包（file: 依赖装配）：
+     - apps/lark-gateway/ — 仅入站 WSS 进程
+     - apps/lark-toolkit/ — 出站统一门面（boundary.route 内部分流 SDK / lark-cli）
+     - apps/pf-skills/ — 业务 skill 调度（debug-checklist 起步）
+  3. 硬规则：3 秒 ack 窗内同步路径走 SDK；其余走 lark-cli
+  4. §3 对齐：AI 仅可调 read-only 子命令（lark schema / doctor / api *.list/get）；写入类需用户一次一批审批；token store 硬禁读
+- 替代项：
+  - 全切 shell out（路径 ②）：fork ~50ms+ 冲击 3 秒 ack；lark-cli 无 WSS 入站
+  - 死守 SDK（路径 ①）：每加一个能力线性增加 wrapper 代码
+- 落地任务：LARK-CLI-01..06（见 docs/superpowers/plans/2026-05-21-lark-cli-integration.md）
+- 回滚：包级 git revert 到基线 e821c8f；决策级标 SUPERSEDED + 加 D-023
+- 关联 spec：docs/superpowers/specs/2026-05-21-lark-cli-integration-design.md
