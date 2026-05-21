@@ -21,6 +21,7 @@ audience: 仓库维护者 / 用户本人（不是 AI / Agent）
 - [ ] 本机能访问 `https://open.feishu.cn`（国内）或 `https://open.larksuite.com`（海外）
 - [ ] 拥有一个飞书账号，且**已被加入企业租户**（不能是个人版飞书）
 - [ ] 该企业租户的管理员**愿意配合**审批"读取群消息 + 发送消息"权限（不需要管理员账号本身参与，只需肯审批）
+- [ ] 已全局安装 lark-cli：`npm install -g @larksuite/cli`（版本 ≥ 1.0.0）。验证：`lark --version` 输出版本号。**未装也能继续走 §4 / §5 的 fallback 路径**，但 lark-cli 路径会更顺（一行命令完成多步手工）。
 
 如果上面任何一项不满足，停在这里——不要再往下做，先解决前置。
 
@@ -67,23 +68,36 @@ audience: 仓库维护者 / 用户本人（不是 AI / Agent）
 2. 群设置 → 群机器人 → 添加机器人 → 选刚创建的 `ProbeFlash-bot`。
 3. 群里发一条 `@ProbeFlash-bot test` 试试——此时机器人**还不会回应**（gateway 还没启动）。如果连机器人都没出现在 @ 提示里，说明 §3.1 权限没批通过或没加进群。
 
-## 4. 在本地填 `.env`
+## 4. 在本地填 .env（两条路径，二选一）
+
+### 4.A. lark-cli 路径（推荐，3 分钟）
 
 ```bash
 cd apps/lark-gateway
-cp .env.example .env
-# 用任意编辑器（vim / VS Code / nano）打开 .env 填入 §1-2 拿到的值
+lark config init             # 交互式问 App ID / Secret / domain；写到 ~/.config/lark-cli/
+lark auth login --recommend  # 浏览器跳转 OAuth，授权最小权限（im:message:send_as_bot + im:message.group_at_msg:readonly）
+lark auth status             # 验证已登录 + 显示当前 app 与 scope
 ```
 
-`.env` 必填字段（其他字段保持默认）：
+`lark config init` 写入的位置：默认 `~/.config/lark-cli/config.json`（macOS / Linux）或 `%APPDATA%\lark-cli\` (Windows)。**AI / Skill 不读此文件**（AGENTS.md §3 末尾约定）。
 
-| 字段 | 填什么 | 来自 §哪 |
-|------|--------|---------|
-| `LARK_APP_ID` | App ID（`cli_xxx`） | §1 |
-| `LARK_APP_SECRET` | App Secret | §1 |
-| `LARK_BOT_OPEN_ID` | 机器人 Open ID（`ou_xxx`） | §2 |
-| `LARK_DOMAIN` | `feishu`（国内）或 `lark`（海外），默认 `feishu` | §1 |
-| `PROBEFLASH_SKILL_MODE` | `mock`（备赛期 MVP 用这个；先打通链路） | 默认 |
+然后 `.env` 只填**入站 gateway 需要**的 4 个字段（出站走 lark-cli 不重复填）：
+
+```bash
+cp .env.example .env
+# 编辑 .env，填入 §1-§2 拿到的值：
+#   LARK_APP_ID=cli_xxx
+#   LARK_APP_SECRET=xxx
+#   LARK_BOT_OPEN_ID=ou_xxx
+#   LARK_DOMAIN=feishu
+#   PROBEFLASH_SKILL_MODE=mock
+```
+
+### 4.B. fallback 手填路径（未装 lark-cli 时用）
+
+完整在 `.env` 填入所有字段（同 4.A 末尾 5 行），跳过 `lark config init` / `lark auth login`。
+
+⚠️ **二选一**：不要既跑 `lark auth login` 又在 `.env` 填全。两套 token store 同时存在会导致 gateway 与未来出站扩展行为不一致（gateway 用 .env / lark-cli 出站用自己的 store）。
 
 ### 安全自检
 - [ ] `.env` 在 `apps/lark-gateway/` 目录内，**不是**仓库根级
@@ -97,53 +111,37 @@ git ls-files | xargs grep -l "$(grep LARK_APP_SECRET .env | cut -d= -f2)" 2>/dev
 # 期望输出：空（说明 secret 没泄到仓库任何文件）
 ```
 
-## 5. 启动 lark-gateway + 跑 Mock 模式 smoke
+## 5. 本地 smoke（两条路径）
+
+### 5.A. lark-cli smoke（推荐）
+
+```bash
+lark doctor                                 # 跑全部前置自检（PATH / token / network / scope）
+lark schema im.v1.message                   # 查发消息 API 字段定义（read-only，不发任何消息）
+lark api im.v1.message.create --data '{
+  "receive_id_type": "open_id",
+  "receive_id": "<你自己的 open_id，看 §1 应用详情页>",
+  "msg_type": "text",
+  "content": "{\"text\":\"smoke from lark-cli\"}"
+}'
+```
+
+预期：飞书客户端收到一条文本"smoke from lark-cli"。失败看 `lark doctor` 输出 + `lark api --debug` 重跑。
+
+### 5.B. gateway smoke（验证入站 + 回复链）
 
 ```bash
 cd apps/lark-gateway
-npm install                  # 首次必跑；后续若已 install 可跳
-npm run dev                  # 进程常驻；Ctrl-C 退出
+npm install
+npm run dev
+# 看到 "starting lark-gateway domain=feishu mode=mock bot_open_id=ou_xxx"
 ```
 
-### 预期启动日志
-```
-[info] starting lark-gateway {"domain":"feishu","mode":"mock","bot_open_id":"ou_xxx..."}
-# 之后 SDK 会输出 WSS 连接相关日志（"connected" / "subscribe ok" 之类）
-```
+打开飞书测试群（§3.3 加好机器人），发 `@ProbeFlash-bot 自动跑点又歪了`，预期 5 秒内群里收到 mock 检查清单回复（开头 `[mock 模式] 已收到症状：自动跑点又歪了`）。
 
-启动失败的常见原因：
-- zod 报错列了具体字段 → `.env` 缺字段，对照 §4 表格补
-- `connect ETIMEDOUT` / `getaddrinfo ENOTFOUND` → 本机访问飞书域名被防火墙拦
-- `app_id or app_secret invalid` → §1 凭证错；重新复制 / 重新点"显示 App Secret"
-- 启动后无任何反应（连 SDK info 都没出） → 把 `loggerLevel` 改 `debug` 看更多输出
+### 5.C. fallback 路径
 
-### Mock 模式 smoke 走查
-
-1. 在测试群里 @ 机器人 + 一句症状：
-   ```
-   @ProbeFlash-bot 自动跑点又歪了
-   ```
-
-2. 期望 1-3 秒内机器人在群里回复：
-   ```
-   [mock 模式] 已收到症状：自动跑点又歪了
-
-   lark-gateway 当前 PROBEFLASH_SKILL_MODE=mock，不调用真实 LLM。
-   配置 ANTHROPIC_API_KEY 或 DEEPSEEK_API_KEY 后，把
-   PROBEFLASH_SKILL_MODE 改成对应 provider 即可生成 5-8 条检查清单。
-   详见 docs/research/lark-onboard-guide.md。
-   ```
-
-3. 测以下边缘情况确认 handler 行为：
-
-| 操作 | 期望行为 |
-|------|---------|
-| 在群里发 `hello`（不 @机器人） | 机器人**不**回复 |
-| `@ProbeFlash-bot` 后什么都不打 | 机器人回复 `@我 + 一句调试症状（如"自动跑点又歪了"），我会生成检查清单。` |
-| `@另一个人` 后说话 | 机器人**不**回复（@ 的不是它） |
-| 私聊机器人发文本 | 看你的权限范围；默认情况下私聊不触发 `im.message.group_at_msg:readonly`（只有群 @ 才触发） |
-
-✅ Mock 模式 smoke 走查通过 = 飞书 → ProbeFlash → 飞书 **链路打通**。LARK-03 整体任务在你这里收尾。
+未装 lark-cli 时跳过 5.A，直接走 5.B；§5.B 走通即视为入站 + 回复链通。
 
 ## 6. （可选）接通真实 LLM provider
 
@@ -228,6 +226,13 @@ cd apps/lark-gateway && npm run dev
 | 连不上 WSS（启动后没有 connected 日志） | 本地网络出站到 `open.feishu.cn:443` 被拦；或公司代理 |
 | `429 Too Many Requests` | 单租户/月超 100 万次或单应用 QPS 默认极低；备赛期不可能触发，触发请先复查代码循环 |
 
+### 8.5. lark-cli 相关
+
+- `lark --version` 找不到命令：`npm install -g @larksuite/cli`；若 npm 全局路径不在 PATH，跑 `npm config get prefix` 看安装位置，把 `<prefix>/bin` 加入 PATH。
+- `lark auth login` 浏览器打不开：手动复制 URL 到浏览器；或加 `--no-browser` 参数走纯命令行 device flow。
+- `lark api ... permission denied`：scope 没批；回 §3.1 重申请权限 + 让管理员审批。
+- gateway 启动报错"lark-cli not found on PATH" 但只想跑 mock：这是 cli-bridge **懒检查**触发的，只在 toolkit 实际命中 `boundary.route → 'cli'` 时才校验；MVP 只 ship reply（走 sdk），不应触发。若触发说明 boundary.ts 配置出错，回去检查 SDK_METHODS 白名单。
+
 ## 9. 这份指南的边界
 
 - 本文**不**包含飞书后台 UI 的截图（飞书后台 UI 会变；以官方文档为准 https://open.feishu.cn/document/）
@@ -251,3 +256,6 @@ cd apps/lark-gateway && npm run dev
 - [ ] §5 边缘情况走查全部符合预期
 - （可选）§6 接真实 provider；MVP 不做
 - （可选）§7 部署到战队服务器；备赛期不建议
+- [ ] 选定 lark-cli 路径或 fallback 路径（不混用）
+- [ ] 若走 lark-cli：`lark auth status` 显示已登录，scope 含 `im:message:send_as_bot` + `im:message.group_at_msg:readonly`
+- [ ] §5.B gateway smoke 在群里收到 mock 回复
