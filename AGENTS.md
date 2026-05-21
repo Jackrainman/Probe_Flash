@@ -53,6 +53,7 @@
 | server script / package | `cd apps/server` 任务对应 verify + `verify:deploy-prep`；`cd apps/desktop && npm run typecheck && npm run build && npm run verify:all` |
 | desktop UI / core workflow / search | `cd apps/desktop && npm run typecheck && npm run build && npm run verify:all`；任务对应 `verify:*`；`git diff --check` |
 | data repair / integrity | `cd apps/server && npm run verify:data-integrity-check`；`cd apps/desktop && npm run verify:data-repair-task-generation`；同上 desktop 必跑 |
+| lark-cli 接入 / lark-toolkit / pf-skills | `cd apps/lark-toolkit && npm run verify:all`；`cd apps/pf-skills && npm run verify:all`；`cd apps/lark-gateway && npm run verify:all`；`git diff --check` |
 | 任何任务（共性） | `git diff --check`；`cd apps/desktop && npm run verify:skills-sync` |
 - exit code != 0 一律失败；未跑的必跑项必须在 commit message 或 `now.md` 中如实标注原因，不得静默跳过。
 - 架构类任务（storage / repository / closeout / adapter / backend scaffold）必须有任务相关代码级 + 契约级验证；只有分析结论一律视为未完成。
