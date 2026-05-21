@@ -39,3 +39,4 @@ scope: skill + planning docs only
 |---|---|---|
 | `2026-05-17-ai-scaffolding-design.md` | `archived` | M1/M2/M3 已落地于 `4c09ba1`;C1 已落地于 `12e747e` |
 | `2026-05-18-bridge-roster-design.md` | `forward-looking` | 依赖 LARK-02 完成 + LARK-03 最小集成跑通后激活 |
+| `2026-05-21-lark-cli-integration-design.md` | `draft` | lark-cli 接入 + lark-gateway 三包拆分；待用户复核后转 writing-plans |
