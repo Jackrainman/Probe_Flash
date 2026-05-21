@@ -165,12 +165,12 @@ PROBEFLASH_SKILL_MODE=claude            # 或 deepseek
 
 ### 6.3 实现 provider 调用（后续任务）
 
-当前 `apps/lark-gateway/src/skill-dispatcher.ts` 的 `claude` / `deepseek` 分支抛 `not implemented` 错。要让它真的工作：
+当前 `apps/pf-skills/src/debug-checklist/claude.ts` / `deepseek.ts` 抛 `not implemented` 错。要让它真的工作：
 
-1. 在 `apps/lark-gateway/` 安装 provider SDK（`npm i @anthropic-ai/sdk` 或 `openai`-兼容客户端调 DeepSeek）。
+1. 在 `apps/pf-skills/` 安装 provider SDK（`npm i @anthropic-ai/sdk` 或 `openai`-兼容客户端调 DeepSeek）。
 2. 把 `.agents/skills/debug-checklist/SKILL.md` 的 prompt 模板读进来（fs.readFile + parse YAML frontmatter）。
-3. 在 `dispatchSkill` 的 `case 'claude'` 分支构造 messages.create 调用，把症状文本插值进 SKILL.md 的 prompt 模板。
-4. 关键：把同步 handler 改异步——3 秒 ack 边界要求 `handleMessage` 立即返回，LLM 调用放 `setImmediate` 异步链。否则飞书会重推 → 重复回复。
+3. 在 `claudeChecklist` / `deepseekChecklist` 内构造 messages.create 调用，把症状文本插值进 SKILL.md 的 prompt 模板，返回 `{ kind: 'claude' | 'deepseek', text }` 形态的 `SkillReply`。
+4. 关键：现在 `handleMessage` 已经 `await deps.skills.dispatch(symptom)` —— 3 秒 ack 边界要求 LLM 调用要么快（≤ 2.5s）要么改成 fire-and-forget（先快速 ack，后续异步回再用 `toolkit.reply` 主动推一条新消息）。MVP 阶段先选前者，靠 streaming + 短 prompt 落到 3 秒内。
 5. 加 `provider` 失败的降级回复（mock 文本 + "provider 暂时不可用"）。
 
 ### 6.4 启用 prompt cache（如选 Claude）
