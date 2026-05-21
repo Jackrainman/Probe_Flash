@@ -5,11 +5,16 @@
 ```yaml
 mode: post_pivot_self_dogfood
 stage: 备赛期 self-iteration + 飞书接入推进
-stage_goal: 完善 debug-checklist skill 自用迭代 + 推进飞书接入（gemini 已完成 API 能力调研，下一步把调研落到仓库 + 找开源候选 + 路径决策）
-current_task: null  # 用户接力链 6 任务全部完成；frontier 暂空，等用户线下走完 lark-onboard-guide §0-§5
-frontier: []
+stage_goal: 完善 debug-checklist skill 自用迭代 + 推进飞书 D-022 三包拆分（LARK-CLI-01..06）+ 跑通用户线下 onboard §0-§5
+current_task: null  # T1 已闭环；frontier 列剩余 5 任务并行起点（待 atomic-task 选）
+frontier:
+  - LARK-CLI-02                          # 立 apps/pf-skills/（无依赖，可即起）
+  - LARK-CLI-04                          # ADR D-022 + lark-connector v2 + AGENTS §2/§3（无依赖，可即起）
+  - LARK-CLI-06                          # lark-cli-dev-usage 新建 + AGENTS §7（无依赖，可即起）
 blocked:
   - BRIDGE-01-ROSTER-SCHEMA              # 等 BRIDGE 备赛后启动
+  - LARK-CLI-03                          # 等 LARK-CLI-01 + 02 都完成（gateway 瘦身依赖两包到位）
+  - LARK-CLI-05                          # 等 LARK-CLI-03 + 04（onboard guide 改写依赖代码+ADR）
 post_pivot_registry:
   - BRIDGE-03-LARK-INTEGRATION           # 备赛后随 LARK 系列重评
   - TRAIL-01-VIEWER-DESIGN               # 等 .debug-archive ≥ 20 条
@@ -19,7 +24,7 @@ frozen:
 
 ## 当前任务
 
-_无。2026-05-19 LARK-ONBOARD-GUIDE 已完成：`docs/research/lark-onboard-guide.md`（status: stable，11 节）。用户接力链 6 任务全部完成。下一步**完全在用户侧**：按 onboard guide §0-§5 走完飞书后台注册 + 凭证填入 + 本地 smoke；走通后 LARK-03 整体真正闭环。AI 侧可暂停 LARK 系列推进，等用户反馈 smoke 结果再决定后续（接真实 LLM provider / 切换 Webhook 模式 / 启动 BRIDGE-01）。_
+_无（等 atomic-task 从 frontier 选首项）。D-022 三包拆分（lark-cli 接入 + lark-gateway 拆 3 包）spec 已 draft + plan 已 active；T1（apps/lark-toolkit/）已落地于 `e3e2069`。剩余 5 任务：T2/T4/T6 三个并行起点已挂 frontier；T3 阻塞依赖 T1+T2，T5 阻塞依赖 T3+T4。LARK-ONBOARD-GUIDE 已落地用户线下接入清单，§1-§5 文字将在 T5 改写为 lark-cli 路径（保留手填 fallback）；用户线下 onboard 走通时机不阻塞 AI 侧 LARK-CLI 推进。_
 
 ## 架构定位（2026-05-15）
 
@@ -28,7 +33,8 @@ ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 
 ## 阻塞 / 待拍板
 
 - **BRIDGE 设计**：等 LARK-03 跑通后再启动（`docs/superpowers/specs/2026-05-18-bridge-roster-design.md` 已 forward-looking）
-- _LARK 系列拍板已完成（D-021），不再列待拍板项_
+- **D-022 ADR 待 T4 落地**：spec `docs/superpowers/specs/2026-05-21-lark-cli-integration-design.md` 已 draft；LARK-CLI-04 任务负责把 D-022 追到 `decisions.md` 并把 `lark-connector.md` 升 stable
+- _D-021 已 DECIDED，不再列待拍板项_
 
 ## 已冻结
 
