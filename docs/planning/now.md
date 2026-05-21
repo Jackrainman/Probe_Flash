@@ -6,14 +6,13 @@
 mode: post_pivot_self_dogfood
 stage: 备赛期 self-iteration + 飞书接入推进
 stage_goal: 完善 debug-checklist skill 自用迭代 + 推进飞书 D-022 三包拆分（LARK-CLI-01..06）+ 跑通用户线下 onboard §0-§5
-current_task: null  # T1 已闭环；frontier 列剩余 5 任务并行起点（待 atomic-task 选）
+current_task: null  # T1/T2 已闭环；frontier 列剩余 4 任务并行起点（待 atomic-task 选）
 frontier:
-  - LARK-CLI-02                          # 立 apps/pf-skills/（无依赖，可即起）
   - LARK-CLI-04                          # ADR D-022 + lark-connector v2 + AGENTS §2/§3（无依赖，可即起）
   - LARK-CLI-06                          # lark-cli-dev-usage 新建 + AGENTS §7（无依赖，可即起）
+  - LARK-CLI-03                          # 依赖 T1+T2 已解锁；gateway 瘦身整合三包
 blocked:
   - BRIDGE-01-ROSTER-SCHEMA              # 等 BRIDGE 备赛后启动
-  - LARK-CLI-03                          # 等 LARK-CLI-01 + 02 都完成（gateway 瘦身依赖两包到位）
   - LARK-CLI-05                          # 等 LARK-CLI-03 + 04（onboard guide 改写依赖代码+ADR）
 post_pivot_registry:
   - BRIDGE-03-LARK-INTEGRATION           # 备赛后随 LARK 系列重评
@@ -24,7 +23,7 @@ frozen:
 
 ## 当前任务
 
-_无（等 atomic-task 从 frontier 选首项）。D-022 三包拆分（lark-cli 接入 + lark-gateway 拆 3 包）spec 已 draft + plan 已 active；T1（apps/lark-toolkit/）已落地于 `e3e2069`。剩余 5 任务：T2/T4/T6 三个并行起点已挂 frontier；T3 阻塞依赖 T1+T2，T5 阻塞依赖 T3+T4。LARK-ONBOARD-GUIDE 已落地用户线下接入清单，§1-§5 文字将在 T5 改写为 lark-cli 路径（保留手填 fallback）；用户线下 onboard 走通时机不阻塞 AI 侧 LARK-CLI 推进。_
+_无（等 atomic-task 从 frontier 选首项）。D-022 三包拆分（lark-cli 接入 + lark-gateway 拆 3 包）spec 已 draft + plan 已 active；T1（apps/lark-toolkit/）已落地于 `e3e2069`，T2（apps/pf-skills/）已落地于 `ea41c74`。剩余 4 任务：T3 阻塞已解除（T1+T2 都 done）；T3/T4/T6 三个并行起点已挂 frontier；T5 阻塞依赖 T3+T4。LARK-ONBOARD-GUIDE 已落地用户线下接入清单，§1-§5 文字将在 T5 改写为 lark-cli 路径（保留手填 fallback）；用户线下 onboard 走通时机不阻塞 AI 侧 LARK-CLI 推进。_
 
 ## 架构定位（2026-05-15）
 
@@ -51,8 +50,8 @@ ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 
 
 ## 最近完成（详见 `git log`）
 
+- 2026-05-21 LARK-CLI-02 立 apps/pf-skills/ 业务 skill 调度子包：types + debug-checklist/{mock,claude,deepseek,index} + index(createSkillDispatcher) 6 src + 3 test；mockChecklist 文案行为契约从 lark-gateway/skill-dispatcher.ts 迁移；createSkillDispatcher closure 捕获 mode + dispatch(symptom) 单参；9 单测全过。
 - 2026-05-21 LARK-CLI-01 立 apps/lark-toolkit/ 出站门面子包：types/boundary/sdk-client/cli-bridge/index 5 src 文件 + 4 test；boundary.route 白名单（im.v1.message.create → sdk，其他 → cli）；cli-bridge 懒检查 lark --version ≥ 1.x（mock 模式不触发）；12+ 单测全过。落地 D-022 三包架构 LARK-CLI-01 任务。
 - 2026-05-19 LARK-ONBOARD-GUIDE 落地：`docs/research/lark-onboard-guide.md`（status: stable，11 节）；§0 前置自检 + §1-§3 飞书后台创建应用/启用机器人/申请权限+事件订阅 + §4 .env 填写 + §5 本地 smoke + §6 可选接真实 LLM provider + §7 可选部署服务器 + §8 排查 + §10 完成 checklist；用户接力链 6 任务全部完成。
 - 2026-05-19 LARK-03-MIN-INTEGRATION 代码部分落地：新建 `apps/lark-gateway/` 子包（9 src + 3 test + 7 配置）；WSClient Long Connection 入站、Mock-first skill 调度、handler 依赖注入；24/24 单测；typecheck + build + verify:all 全通；不引入 LLM provider 依赖、不调真实飞书 API；途中遇 .git/objects 5 文件 0 字节损坏 → 软重置 f467c8f 后重做 LARK-01 commit（f3f0578）。
 - 2026-05-19 LARK-01-CONNECTOR-ARCH 落地：`docs/design/lark-connector.md`（status: draft，11 节）；新建 `apps/lark-gateway/` 子包架构、WSClient+EventDispatcher 接口契约、Mock-first 调度策略、4 字段 .env 边界、3 秒 ack 边界、错误模型 + decisions.md D-021 后续。
-- 2026-05-19 LARK-PATH-DECISION 拍板：D-021 落终态（DECIDED）；用户拍板路径 A + SDK 长期依赖 + Long Connection 模式；LARK-01 / LARK-03 / LARK-ONBOARD 解锁。
