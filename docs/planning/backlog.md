@@ -35,7 +35,7 @@
 | LARK-CLI-03 | pending（依赖 01+02） | code | `apps/lark-gateway/` 瘦身：抽 `ws-client.ts` + 删 `lark-client.ts` / `reply-sender.ts` / `skill-dispatcher.ts` + `message-handler.ts` 改 `Toolkit` + `SkillDispatcher` 注入 + `package.json` 加 `file:` 依赖；测试重写；DoD = `cd apps/lark-gateway && npm run verify:all`（exit 0） + gateway src ≤ 6 |
 | LARK-CLI-04 | done | docs | 已落地于 2026-05-21（commit `fef9e77`）；`decisions.md` 追 D-022 (DECIDED) + `docs/design/lark-connector.md` 重写 v2 (status: stable，三包架构 + createToolkit/createSkillDispatcher/buildEventDispatcher 接口契约 + §9 实现通道列) + `roadmap.md` §4 出站扩展通道标注 + `AGENTS.md` §2 lark-cli skills 命名预警 + §3 lark-cli auth boundary；git diff --check 干净 + frontmatter yaml 解析通过 |
 | LARK-CLI-05 | pending（依赖 03+04） | docs | `lark-onboard-guide.md` §0/§4/§5/§8/§10 改写加 lark-cli 路径并保留 fallback；DoD = `grep "cp .env.example" docs/research/lark-onboard-guide.md` 仍命中 + `grep -c "lark config init\|lark auth login\|lark doctor"` ≥ 4 + `git diff --check` 干净 |
-| LARK-CLI-06 | pending | docs | `docs/research/lark-cli-dev-usage.md` 新建 (status: stable, 7 节) + `AGENTS.md` §7 Verify Matrix 加 lark-cli 接入行；DoD = `test -f docs/research/lark-cli-dev-usage.md` + `grep "lark-cli 接入" AGENTS.md` 命中 + `git diff --check` 干净 |
+| LARK-CLI-06 | done | docs | 已落地于 2026-05-21（commit `4d5854a`）；`docs/research/lark-cli-dev-usage.md` 新建 (status: stable, 7 节：安装/鉴权/dev 自检/只读 API/写入审批/排查/与仓库关系/范围外) + `AGENTS.md` §7 Verify Matrix 加 lark-cli 接入行；DoD `test -f docs/research/lark-cli-dev-usage.md` + `grep "lark-cli 接入" AGENTS.md` 命中 + `git diff --check` 干净（exit 0） |
 
 ## P1 — Bridge（备赛后启动）
 
