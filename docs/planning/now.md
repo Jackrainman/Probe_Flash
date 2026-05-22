@@ -45,8 +45,8 @@ ProbeFlash = 中央处理枢纽；飞书 = 输入数据源 + 通知层。详见 
 
 ## 最近完成（详见 `git log`）
 
+- 2026-05-22 backlog 加 BRIDGE-05-RESEARCH-POOL 候选（pending 备赛后 + 边界待拍板）：「待研究池 + 接棒」——闲时自驱认领研究项 + 接力产出文档与代码。三条边界待拍板：(a) 产能比较禁区（接棒次数上 UI 即 implicit 排名，违反设计宪法 §2）；(b) schema 选型（独立子段并行 vs 学习链串行接力）；(c) 与 BRIDGE-04 / TRAIL-02 / TRAIL-04 重叠面合并评估不单独认领。不进 frontier，备赛后随 BRIDGE 系列统一拍板。
 - 2026-05-21 LARK-CLI-05 lark-onboard-guide.md 改写：§0 加 lark-cli 安装检查 + §4 拆 4.A (lark config init + lark auth login) 与 4.B (手填 fallback) 加二选一警告 + §5 拆 5.A (lark api smoke) / 5.B (gateway smoke) / 5.C (fallback) + §8 加 lark-cli 排查 + §10 checklist 同步；旧手填 fallback 完整保留。
 - 2026-05-21 LARK-CLI-03 apps/lark-gateway 瘦身整合三包：新增 ws-client.ts + 删 lark-client/reply-sender/skill-dispatcher + message-handler/event-router/main.ts 改 Toolkit + SkillDispatcher 注入；package.json 加 file: deps；测试重写 10 全过 + config 8 测全过（合计 18/18）；gateway src 9 → 7（net -175 行）；typecheck/test/build 三关 PASS。
 - 2026-05-21 LARK-CLI-06 lark-cli-dev-usage 指南新建 + AGENTS §7 同步：`docs/research/lark-cli-dev-usage.md`（status: stable, 7 节，含安装/鉴权/dev自检/只读 API/写入审批/排查/与仓库关系/范围外）+ AGENTS.md §7 Verify Matrix 加 lark-cli 接入行。
 - 2026-05-21 LARK-CLI-04 ADR D-022 + lark-connector v2 + AGENTS §2/§3 同步：decisions.md 追 D-022 (DECIDED) lark-cli 接入 + 三包拆分 + §3 对齐；lark-connector.md 重写 v2 (status: stable)：三包架构 §1.1-§1.4 + createToolkit/createSkillDispatcher/buildEventDispatcher 接口契约 + §9 实现通道列 + 调用链图；roadmap.md §4 出站扩展通道标注；AGENTS.md §2 末尾 lark-cli skills 命名预警 + §3 末尾 lark-cli auth boundary。git diff --check 干净 + frontmatter yaml 解析通过；commit `fef9e77`。
-- 2026-05-21 LARK-CLI-02 立 apps/pf-skills/ 业务 skill 调度子包：types + debug-checklist/{mock,claude,deepseek,index} + index(createSkillDispatcher) 6 src + 3 test；mockChecklist 文案行为契约从 lark-gateway/skill-dispatcher.ts 迁移；createSkillDispatcher closure 捕获 mode + dispatch(symptom) 单参；9 单测全过。

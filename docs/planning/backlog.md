@@ -45,6 +45,7 @@
 | BRIDGE-02-PRINTABLE-V0 | pending（备赛后） | design | schema 跑通后做一个能打印的纯 markdown 模板，无网页 |
 | BRIDGE-03-READONLY-VIEWER | pending（备赛后） | design | 决定要不要做 web 只读视图；要做就把 v0.3 网页 UI 改造为 markdown viewer |
 | BRIDGE-04-WORKLOAD-VISIBILITY | pending（备赛后） | design | "谁被任务卡住 + 需要什么帮助"——只显示任务阻塞，不显示人与人的产能排名。可辅助"简单任务的人去帮卡住的人"配对 |
+| BRIDGE-05-RESEARCH-POOL | pending（备赛后 + 边界待拍板） | design | "待研究池 + 接棒"——闲时自驱认领研究项，一棒/二棒/三棒接力产出文档与代码，让所有人都能学到自己感兴趣的且没人感觉没事干。边界待拍板：(a) **产能比较禁区**——接棒次数 / 文档量一旦上群 UI 即 implicit 排名，违反设计宪法 §2，design 时须硬隔（计数只对 self / 不上群）；(b) **schema 选型**——研究分独立子段并行 vs 学习链「学 A → 教下个 → 学 B」串行接力，两种数据模型完全不同；(c) **与 BRIDGE-04 / TRAIL-02 / TRAIL-04 关系**——救人池/auto-weave/周报有重叠面，须一起评估边界不单独认领 |
 
 ## P2 — Trail（archive 数据足够后启动）
 
