@@ -15,10 +15,11 @@
 | 任务 | 状态 | type | 内容 |
 |------|------|------|------|
 | HUB-CONCEPT-01 | done | design | 已落地于 2026-06-06；`docs/design/team-hub-concept.md`（status: stable，目标/非目标/总体架构/模块边界/业务模型 v0/API 草案/构建步骤/`xju-feiyue` 复用判断/技术栈分歧/工作流判断/后续候选队列）+ `decisions.md` D-024 + `.gitignore` 忽略 `xju-feiyue/` + planning/roadmap/AGENTS 同步；DoD = `test -f docs/design/team-hub-concept.md` + `grep "D-024" docs/planning/decisions.md` + `git diff --check` + `now.md` yaml 可解析 + `verify:skills-sync` |
-| HUB-STACK-DECISION | pending | design | 技术栈拍板：Node/TypeScript 统一栈 vs FastAPI + React 控制台；产出 `docs/design/team-hub-stack-decision.md` + decisions 追加 D-025；必须明确后端包位置、控制台包位置、DB/持久化策略、与现有 lark 三包连接方式 |
-| HUB-BACKEND-SCAFFOLD | pending（依赖 HUB-STACK-DECISION） | code | 新建 Hub 后端壳子，至少有 `/health`、`/api/system/status`、`/api/adapters` mock endpoint + contract test；不接真实外部服务 |
-| HUB-CONTRACTS-V0 | pending（依赖 HUB-BACKEND-SCAFFOLD） | code | 落 `HubEvent` / `AdapterDescriptor` / `BridgeMemberState` / `GitRepoRef` / `ArtifactRef` schema 与 API contract fixtures |
-| HUB-CONSOLE-SCAFFOLD | pending（依赖 HUB-STACK-DECISION） | code | 新建前端控制台壳子：API client + schema parse + mock/real backend split + 总览页 mock 数据；UI 可参考 `xju-feiyue` 管理后台和分层，但业务模型重写 |
+| HUB-STACK-DECISION | done | design | 已落地于 2026-06-06；`docs/design/team-hub-stack-decision.md`（status: decided，Node/TypeScript 统一栈；新包 `apps/hub-server` / `apps/hub-console`；控制台借鉴 `xju-feiyue` 的 React/Vite/TanStack Query/Zod/shadcn 分层但业务重写；Docker Compose 硬要求；同镜像换 `.env`；生产 Postgres + SQLite fallback；artifact/log/firmware/rosbag 只做索引和 volume/外部存储边界；Forgejo 默认 Git 中枢；Ubuntu 20.04 过渡、22.04/24.04 公网建议；lark 三包接入；Hermes/小龙虾/Claude Code mock-first adapter）+ `decisions.md` D-025 + planning 同步；DoD = `test -f docs/design/team-hub-stack-decision.md` + `grep "D-025" docs/planning/decisions.md` + `git diff --check` + `now.md` yaml 可解析 + `verify:skills-sync` |
+| HUB-BACKEND-SCAFFOLD | pending | code | 新建 `apps/hub-server/` 后端壳子，按 D-025 采用 Node/TypeScript；至少有 `/health`、`/api/system/status`、`/api/adapters` mock endpoint + contract test；不接真实外部服务 |
+| HUB-CONTRACTS-V0 | pending（依赖 HUB-BACKEND-SCAFFOLD） | code | 落 `HubEvent` / `AdapterDescriptor` / `BridgeMemberState` / `GitRepoRef` / `ArtifactRef` schema 与 API contract fixtures；优先考虑 `apps/hub-contracts/` 共享契约包 |
+| HUB-CONSOLE-SCAFFOLD | pending | code | 新建 `apps/hub-console/` 前端控制台壳子：React/Vite + API client + schema parse + mock/real backend split + 总览页 mock 数据；UI 可参考 `xju-feiyue` 管理后台和分层，但业务模型重写 |
+| HUB-COMPOSE-SCAFFOLD | pending（依赖 HUB-BACKEND-SCAFFOLD） | code | 新增 Dockerfile / Compose core profile，至少 `hub + postgres` 一键启动并通过 health smoke；不接真实公网、不写真实服务器 |
 | HUB-LARK-WIRE | pending（依赖 HUB-CONTRACTS-V0） | code | 把现有 `apps/lark-gateway` / `apps/lark-toolkit` / `apps/pf-skills` 接到 Hub event/adapter 接口；mock-first，不要求 AI 执行真实飞书 smoke |
 | HUB-ADAPTERS-MOCK | pending（依赖 HUB-CONTRACTS-V0） | code | 定义并实现 Hermes / 小龙虾 / Claude Code mock adapter；只暴露 health/capabilities/invoke stub，不接真实凭证 |
 | HUB-GIT-FORGE-DESIGN | pending | design | 战队服务器 Git 中枢方案：Forgejo/Gitea/bare git 取舍、push/pull 工作流、artifact 不入 Git 策略、权限和备份边界；真实服务器操作另开任务审批 |
@@ -90,7 +91,6 @@
 
 ## Decision-needed
 
-- HUB-STACK-DECISION：Node/TypeScript 统一栈 vs FastAPI + React 控制台。
 - 战队服务器 Git 中枢：Forgejo / Gitea / bare git 取舍，真实部署另开审批任务。
 - Hermes / 小龙虾 / Claude Code adapter：真实接入方式、权限和运行边界需用户提供。
 
