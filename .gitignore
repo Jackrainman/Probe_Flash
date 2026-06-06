@@ -33,6 +33,7 @@ tmp/
 
 # Local reference projects copied for comparison; do not commit into ProbeFlash.
 xju-feiyue/
+docs/se-assignment/
 
 # Release build outputs; tracked historical release assets stay tracked until convention changes.
 .release/
