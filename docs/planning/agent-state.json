@@ -1,0 +1,147 @@
+{
+  "schema_version": 1,
+  "generated_from": [
+    "docs/planning/now.md",
+    "docs/planning/backlog.md",
+    "docs/planning/decisions.md",
+    "docs/design/team-hub-concept.md",
+    "docs/design/team-hub-stack-decision.md"
+  ],
+  "authority": "derived-index-only; now.md/backlog.md/decisions.md remain authoritative",
+  "mode": "team_hub_shell_design",
+  "stage": "Team Hub 战队中枢概念冻结 + 技术栈拍板完成；AI 默认上下文已瘦身",
+  "current_task": null,
+  "frontier": [
+    "HUB-BACKEND-SCAFFOLD",
+    "HUB-CONSOLE-SCAFFOLD",
+    "HUB-GIT-FORGE-DESIGN"
+  ],
+  "blocked": [],
+  "active_decisions": [
+    {
+      "id": "D-024",
+      "title": "ProbeFlash 升级为 Team Hub 战队中枢",
+      "source": "docs/planning/decisions.md"
+    },
+    {
+      "id": "D-025",
+      "title": "Team Hub 技术栈、部署与数据边界拍板",
+      "source": "docs/planning/decisions.md"
+    }
+  ],
+  "default_reads": [
+    "AGENTS.md",
+    "docs/planning/now.md",
+    "docs/planning/agent-state.json"
+  ],
+  "default_commands": [
+    "git status --short",
+    "git log --oneline -5"
+  ],
+  "conditional_reads": {
+    "task_selection_or_frontier_check": [
+      "docs/planning/backlog.md"
+    ],
+    "long_term_decision_or_mode_change": [
+      "docs/planning/decisions.md"
+    ],
+    "team_hub_backend_or_console_or_adapter_or_git": [
+      "docs/design/team-hub-concept.md",
+      "docs/design/team-hub-stack-decision.md"
+    ],
+    "visual_reference": [
+      "docs/planning/visuals.md"
+    ],
+    "historical_trace": [
+      "docs/archive/"
+    ]
+  },
+  "active_task_index": {
+    "HUB-BACKEND-SCAFFOLD": {
+      "status": "pending",
+      "type": "code",
+      "context_docs": [
+        "docs/design/team-hub-stack-decision.md",
+        "docs/design/team-hub-concept.md"
+      ],
+      "summary": "新建 apps/hub-server 后端壳子；Node/TypeScript；/health、/api/system/status、/api/adapters mock endpoint + contract test；不接真实外部服务"
+    },
+    "HUB-CONTRACTS-V0": {
+      "status": "pending",
+      "type": "code",
+      "depends_on": [
+        "HUB-BACKEND-SCAFFOLD"
+      ],
+      "context_docs": [
+        "docs/design/team-hub-stack-decision.md",
+        "docs/design/team-hub-concept.md"
+      ],
+      "summary": "落 HubEvent / AdapterDescriptor / BridgeMemberState / GitRepoRef / ArtifactRef schema 与 API contract fixtures"
+    },
+    "HUB-CONSOLE-SCAFFOLD": {
+      "status": "pending",
+      "type": "code",
+      "context_docs": [
+        "docs/design/team-hub-stack-decision.md",
+        "docs/design/team-hub-concept.md"
+      ],
+      "summary": "新建 apps/hub-console 前端控制台壳子；React/Vite + API client + schema parse + mock/real backend split + 总览页 mock 数据"
+    },
+    "HUB-COMPOSE-SCAFFOLD": {
+      "status": "pending",
+      "type": "code",
+      "depends_on": [
+        "HUB-BACKEND-SCAFFOLD"
+      ],
+      "context_docs": [
+        "docs/design/team-hub-stack-decision.md"
+      ],
+      "summary": "新增 Dockerfile / Compose core profile，至少 hub + postgres 一键启动并通过 health smoke；不接真实公网、不写真实服务器"
+    },
+    "HUB-LARK-WIRE": {
+      "status": "pending",
+      "type": "code",
+      "depends_on": [
+        "HUB-CONTRACTS-V0"
+      ],
+      "context_docs": [
+        "docs/design/lark-connector.md",
+        "docs/design/team-hub-stack-decision.md"
+      ],
+      "summary": "把现有 lark-gateway / lark-toolkit / pf-skills 接到 Hub event/adapter 接口；mock-first"
+    },
+    "HUB-ADAPTERS-MOCK": {
+      "status": "pending",
+      "type": "code",
+      "depends_on": [
+        "HUB-CONTRACTS-V0"
+      ],
+      "context_docs": [
+        "docs/design/team-hub-concept.md",
+        "docs/design/team-hub-stack-decision.md"
+      ],
+      "summary": "定义并实现 Hermes / 小龙虾 / Claude Code mock adapter；只暴露 health/capabilities/invoke stub"
+    },
+    "HUB-GIT-FORGE-DESIGN": {
+      "status": "pending",
+      "type": "design",
+      "context_docs": [
+        "docs/design/team-hub-concept.md",
+        "docs/design/team-hub-stack-decision.md"
+      ],
+      "summary": "战队服务器 Git 中枢方案：Forgejo/Gitea/bare git 取舍、push/pull 工作流、artifact 不入 Git 策略、权限和备份边界"
+    }
+  },
+  "hard_stops": [
+    "real_server_write",
+    "ssh",
+    "sudo",
+    "systemd",
+    "port_80_or_443",
+    "real_api_key_or_secret",
+    "external_account_write",
+    "destructive_migration",
+    "unclear_task_boundary",
+    "two_consecutive_local_verify_failures"
+  ]
+}

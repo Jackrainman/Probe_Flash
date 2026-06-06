@@ -7,7 +7,9 @@
 - v0.3.0（原 SPA + SQLite 版本）已冻结，仅致命补丁；当前模式 `team_hub_shell_design`。
 
 ## 2. Workspace Rules
-- `docs/planning/`：唯一当前战况源 = `now.md`；候选池 = `backlog.md`；长期 ADR = `decisions.md`；长期愿景 = `roadmap.md`。这 4 份是 AI 默认读取链。
+- `docs/planning/`：唯一当前战况源 = `now.md`；机器可读派生索引 = `agent-state.json`；候选池 = `backlog.md`；长期 ADR = `decisions.md`；长期愿景 = `roadmap.md`。
+- **AI 默认读取链**：`AGENTS.md` + `docs/planning/now.md` + `docs/planning/agent-state.json` + `git status --short` + `git log --oneline -5`。`agent-state.json` 只是索引/缓存，不是权威事实源；若与 `now.md` / `backlog.md` / `decisions.md` 冲突，以权威源为准并先修索引。
+- 条件读取：选任务 / 校验 frontier 时读 `backlog.md`；阶段切换 / 长期争议时读 `decisions.md`；长期愿景争议时读 `roadmap.md`；命中 Team Hub 后端 / 控制台 / adapter / Git 中枢时读 `docs/design/team-hub-concept.md` 与 `docs/design/team-hub-stack-decision.md` 的相关段落。
 - `docs/planning/visuals.md`：可视化参考（中央枢纽 / 数据流 / 能力速览等图表）。**不在默认读取链**；仅在需要查图时按需读取；**仅在用户明确要求"更新可视化文档"时修改**。
 - `docs/archive/`：历史归档（含 `pre-slim/`、`v0.2-closeout/`、`v0.3-pivot/`；v0.3 产品介绍与领域模型图均已归档至 `v0.3-pivot/product/`），默认不读，仅在历史追溯命中时读取。当前 Team Hub 产品定义在 `roadmap.md §0` + `decisions.md D-024` + `docs/design/team-hub-concept.md`。
 - `.agents/skills/`：可执行流程规则；权威源；一个 skill 只做一件事。**只放当前 active 触发面的 skill。**
@@ -44,7 +46,7 @@
 ## 6. Atomic Task Discipline
 - 同一时刻只允许一个原子任务处于执行中。
 - Completion gate 三件套：最小验证通过 + `now.md` planning sync + 单任务 commit。三者全齐才允许选下一任务。
-- planning sync = 覆盖式更新 `now.md`（current_task / frontier / blocked / 最近完成裁剪到 5 条）；候选池增删改名重排时同步 `backlog.md`；长期决策变化时追加 `decisions.md`。
+- planning sync = 覆盖式更新 `now.md`（current_task / frontier / blocked / 最近完成裁剪到 5 条）并同步 `agent-state.json` 索引；候选池增删改名重排时同步 `backlog.md`；长期决策变化时追加 `decisions.md`。
 - 禁止凭旧计划机械顺推；禁止 commit 后自动续推下一任务，必须重新走 `atomic-task` skill 第 1 步。
 - 完整循环规则见 `.agents/skills/atomic-task/SKILL.md`。
 
