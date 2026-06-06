@@ -31,6 +31,9 @@ tmp/
 *.sqlite
 *.sqlite-*
 
+# Local reference projects copied for comparison; do not commit into ProbeFlash.
+xju-feiyue/
+
 # Release build outputs; tracked historical release assets stay tracked until convention changes.
 .release/
 

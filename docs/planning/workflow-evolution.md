@@ -80,7 +80,7 @@ epic（大任务）
 
 不满足任一 → 仍按扁平 atomic 处理。
 
-备赛期（当前 `post_pivot_self_dogfood` 模式）默认**不**触发——任务都是 SKILL.md 迭代，小颗粒。
+历史备赛期（`post_pivot_self_dogfood` 模式）默认**不**触发——任务都是 SKILL.md 迭代，小颗粒。当前 D-024 已切到 `team_hub_shell_design`，但本文档仍是 forward-looking 存档，未激活 epic 模式；Team Hub 后续仍按 atomic-task 单任务执行。
 
 ## 8. 首批候选（仅记录，不执行）
 

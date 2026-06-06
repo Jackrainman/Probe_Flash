@@ -1,14 +1,27 @@
-# Backlog（pivot 后）
+# Backlog（Team Hub）
 
-> 一行一候选；状态字段：`current` / `pending` / `frozen` / `decision-needed`。当前唯一任务见 `now.md`，长期路线见 `roadmap.md`，长期决策见 `decisions.md`。pre-pivot backlog 历史快照 → `docs/archive/v0.3-pivot/backlog.md`。
+> 一行一候选；状态字段：`current` / `pending` / `done` / `frozen` / `decision-needed` / `superseded-by-D024`。当前唯一任务见 `now.md`，长期路线见 `roadmap.md`，长期决策见 `decisions.md`。pre-pivot backlog 历史快照 → `docs/archive/v0.3-pivot/backlog.md`。
 
-## 认领规则（pivot 后）
+## 认领规则（Team Hub）
 
 1. 每次只认领一个原子任务，未 commit 不进入下一任务。
-2. 备赛期允许的任务类型：**SKILL 自用任务 + LARK 飞书接入**（飞书接入是 `now.md.stage_goal` 之一，gemini 已完成 API 调研）；BRIDGE / TRAIL 仍 pending 到备赛后。
+2. 当前允许的任务类型：**Team Hub 概念 / 技术栈拍板 / Hub 后端壳子 / 控制台壳子 / adapter mock-first / 飞书接入整合**。真实 Hermes / 小龙虾 / Claude Code / 服务器写入必须用户线下配置或审批。
 3. ProbeFlash v0.3 已冻结：不再认领 TECH / AIREADY / REALAI / CODECTX / DEP / DATA / UI / CORE / SEARCH 任务；致命补丁除外。
-4. 冷静期：决定写代码前让判断沉 48-72h，不冲动开新坑。
+4. 每个代码任务必须先有接口契约或 schema；控制台 UI 任务必须先有页面状态与 API mock 设计。
 5. 候选池只在本文件；`roadmap.md` 不构成候选源。若 `now.md` frontier 项在本文件无对应行，视为脱节，必须先补本文件再认领；不允许"凭空 frontier"。
+
+## P0 — Team Hub 壳子与接口（当前主线）
+
+| 任务 | 状态 | type | 内容 |
+|------|------|------|------|
+| HUB-CONCEPT-01 | done | design | 已落地于 2026-06-06；`docs/design/team-hub-concept.md`（status: stable，目标/非目标/总体架构/模块边界/业务模型 v0/API 草案/构建步骤/`xju-feiyue` 复用判断/技术栈分歧/工作流判断/后续候选队列）+ `decisions.md` D-024 + `.gitignore` 忽略 `xju-feiyue/` + planning/roadmap/AGENTS 同步；DoD = `test -f docs/design/team-hub-concept.md` + `grep "D-024" docs/planning/decisions.md` + `git diff --check` + `now.md` yaml 可解析 + `verify:skills-sync` |
+| HUB-STACK-DECISION | pending | design | 技术栈拍板：Node/TypeScript 统一栈 vs FastAPI + React 控制台；产出 `docs/design/team-hub-stack-decision.md` + decisions 追加 D-025；必须明确后端包位置、控制台包位置、DB/持久化策略、与现有 lark 三包连接方式 |
+| HUB-BACKEND-SCAFFOLD | pending（依赖 HUB-STACK-DECISION） | code | 新建 Hub 后端壳子，至少有 `/health`、`/api/system/status`、`/api/adapters` mock endpoint + contract test；不接真实外部服务 |
+| HUB-CONTRACTS-V0 | pending（依赖 HUB-BACKEND-SCAFFOLD） | code | 落 `HubEvent` / `AdapterDescriptor` / `BridgeMemberState` / `GitRepoRef` / `ArtifactRef` schema 与 API contract fixtures |
+| HUB-CONSOLE-SCAFFOLD | pending（依赖 HUB-STACK-DECISION） | code | 新建前端控制台壳子：API client + schema parse + mock/real backend split + 总览页 mock 数据；UI 可参考 `xju-feiyue` 管理后台和分层，但业务模型重写 |
+| HUB-LARK-WIRE | pending（依赖 HUB-CONTRACTS-V0） | code | 把现有 `apps/lark-gateway` / `apps/lark-toolkit` / `apps/pf-skills` 接到 Hub event/adapter 接口；mock-first，不要求 AI 执行真实飞书 smoke |
+| HUB-ADAPTERS-MOCK | pending（依赖 HUB-CONTRACTS-V0） | code | 定义并实现 Hermes / 小龙虾 / Claude Code mock adapter；只暴露 health/capabilities/invoke stub，不接真实凭证 |
+| HUB-GIT-FORGE-DESIGN | pending | design | 战队服务器 Git 中枢方案：Forgejo/Gitea/bare git 取舍、push/pull 工作流、artifact 不入 Git 策略、权限和备份边界；真实服务器操作另开任务审批 |
 
 ## P0 — Skill 自用闭环（备赛期窗口）
 
@@ -43,24 +56,24 @@
 | LARK-CLI-05 | done | docs | 已落地于 2026-05-21（commit `8b7bb5b`）；`docs/research/lark-onboard-guide.md` §0/§4/§5/§8/§10 改写加 lark-cli 路径并保留 fallback：§0 加 lark-cli 安装检查 + §4 拆 4.A (lark config init + lark auth login) 与 4.B (手填 fallback) 加二选一警告 + §5 拆 5.A/5.B/5.C + §8.5 加 lark-cli 排查 + §10 checklist 同步；DoD `grep "cp .env.example"` 仍命中 + `grep -c "lark config init\|lark auth login\|lark doctor"` = 8 + `git diff --check` 干净 + frontmatter yaml 解析通过 |
 | LARK-CLI-06 | done | docs | 已落地于 2026-05-21（commit `4d5854a`）；`docs/research/lark-cli-dev-usage.md` 新建 (status: stable, 7 节：安装/鉴权/dev 自检/只读 API/写入审批/排查/与仓库关系/范围外) + `AGENTS.md` §7 Verify Matrix 加 lark-cli 接入行；DoD `test -f docs/research/lark-cli-dev-usage.md` + `grep "lark-cli 接入" AGENTS.md` 命中 + `git diff --check` 干净（exit 0） |
 
-## P1 — Bridge（备赛后启动）
+## P1 — Legacy Bridge 候选（被 Hub 覆盖，待重评）
 
 | 任务 | 状态 | type | 内容 |
 |------|------|------|------|
-| BRIDGE-01-ROSTER-SCHEMA | pending（备赛后） | docs | 在 `docs/bridge/ROSTER.schema.md` 起一份 markdown schema；先打印贴墙试用 |
-| BRIDGE-02-PRINTABLE-V0 | pending（备赛后） | design | schema 跑通后做一个能打印的纯 markdown 模板，无网页 |
-| BRIDGE-03-READONLY-VIEWER | pending（备赛后） | design | 决定要不要做 web 只读视图；要做就把 v0.3 网页 UI 改造为 markdown viewer |
-| BRIDGE-04-WORKLOAD-VISIBILITY | pending（备赛后） | design | "谁被任务卡住 + 需要什么帮助"——只显示任务阻塞，不显示人与人的产能排名。可辅助"简单任务的人去帮卡住的人"配对 |
-| BRIDGE-05-RESEARCH-POOL | pending（备赛后 + 边界待拍板） | design | "待研究池 + 接棒"——闲时自驱认领研究项，一棒/二棒/三棒接力产出文档与代码，让所有人都能学到自己感兴趣的且没人感觉没事干。边界待拍板：(a) **产能比较禁区**——接棒次数 / 文档量一旦上群 UI 即 implicit 排名，违反设计宪法 §2，design 时须硬隔（计数只对 self / 不上群）；(b) **schema 选型**——研究分独立子段并行 vs 学习链「学 A → 教下个 → 学 B」串行接力，两种数据模型完全不同；(c) **与 BRIDGE-04 / TRAIL-02 / TRAIL-04 关系**——救人池/auto-weave/周报有重叠面，须一起评估边界不单独认领 |
+| BRIDGE-01-ROSTER-SCHEMA | superseded-by-D024 | docs | 旧 markdown-only ROSTER schema 被 Hub `BridgeMemberState` / `bridge` API 覆盖；不直接认领，必要时拆为 HUB-CONTRACTS/HUB-CONSOLE 子任务 |
+| BRIDGE-02-PRINTABLE-V0 | superseded-by-D024 | design | 旧纯 markdown 打印模板暂不推进；若需要纸面检查单，后续作为 Hub 输出视图单独设计 |
+| BRIDGE-03-READONLY-VIEWER | superseded-by-D024 | design | 旧只读 viewer 被 Hub 控制台覆盖；不再从 v0.3 UI 改造 |
+| BRIDGE-04-WORKLOAD-VISIBILITY | superseded-by-D024 | design | 核心边界保留为 Hub BridgeState：只显示任务阻塞和求助，不显示人与人产能排名 |
+| BRIDGE-05-RESEARCH-POOL | superseded-by-D024 | design | 待研究池/接棒与 Hub Bridge / Trail / 周报重叠，后续需在 Hub 信息模型内重评 |
 
-## P2 — Trail（archive 数据足够后启动）
+## P2 — Legacy Trail 候选（被 Hub 覆盖，待重评）
 
 | 任务 | 状态 | type | 内容 |
 |------|------|------|------|
-| TRAIL-01-VIEWER-DESIGN | pending（archive ≥ 20 条） | design | 设计三种视图：个人足迹 / 模块史 / 赛季年鉴 |
-| TRAIL-02-AUTO-WEAVE | pending | design | AI 把 `.debug-archive/` + 个人日报织成"成长摘要" |
-| TRAIL-03-V03-UI-RETIRE | pending | design | v0.3 网页 UI 退役为 Trail 的 markdown viewer |
-| TRAIL-04-WEEKLY-SUMMARY | pending | design | 自动聚合个人日报/周报 + debug 记录，生成"这周干了啥"的可分享摘要。直接回答老师/学长问话 |
+| TRAIL-01-VIEWER-DESIGN | superseded-by-D024 | design | Trail viewer 等 Hub event/archive/artifact 原料足够后重评，不再以 `.debug-archive ≥ 20` 作为唯一启动条件 |
+| TRAIL-02-AUTO-WEAVE | superseded-by-D024 | design | 自动织摘要保留为 Hub Trail 能力位，暂不直接认领 |
+| TRAIL-03-V03-UI-RETIRE | frozen | design | v0.3 UI 已冻结，不再规划改造为 Trail viewer |
+| TRAIL-04-WEEKLY-SUMMARY | superseded-by-D024 | design | 周报能力保留，但输入源扩展为 Hub event/archive/artifact/git/飞书后再设计 |
 
 ## 已冻结（pre-pivot，不再认领）
 
@@ -77,15 +90,16 @@
 
 ## Decision-needed
 
-- 备赛后 Bridge schema 第一版要不要含"AI 自动汇总周状态"——决定取决于 dogfood 期间是否有这种需求暴露出来。
-- v0.3 网页 UI 是否真改造为 Trail viewer——等 Trail 数据 ≥ 20 条再决定。
+- HUB-STACK-DECISION：Node/TypeScript 统一栈 vs FastAPI + React 控制台。
+- 战队服务器 Git 中枢：Forgejo / Gitea / bare git 取舍，真实部署另开审批任务。
+- Hermes / 小龙虾 / Claude Code adapter：真实接入方式、权限和运行边界需用户提供。
 
 ## 当前不做
 
 - 不为 v0.3 加新功能、不重构、不 polish。
-- 不在备赛期启动 Bridge / Trail。
+- 不按旧 markdown-only 方式启动 Bridge / Trail；它们已纳入 Team Hub 能力位。
 - 不做人与人比较的产能排名 / 绩效统计 / 多租户 / 权限。任务阻塞可见（"这个任务卡了 3 天需要人帮"）≠ 产能排名（"张三比李四干得多"），前者允许。
-- 不做 RAG / embedding / Electron / fs / IPC。
+- 壳子阶段不做 RAG / embedding / 炼丹 / 完整 Trail viewer。
 - 不抢占服务器 80 端口；不升级系统 Node。
 - 不读 / 搜索 / 提交真实 API key。
 - 不依赖学校战队配合作为产品验证。
